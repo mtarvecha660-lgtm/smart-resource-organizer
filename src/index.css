@@ -139,6 +139,8 @@ html.light #resource-modal,
 html.light #delete-confirm-modal,
 html.light #send-to-vault-modal,
 html.light #pwa-install-guide-modal,
+html.light #incoming-share-modal,
+html.light #share-confirm-modal,
 html.light [id^="action-menu-"] {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
@@ -164,4 +166,19 @@ html.light #stats-panel .recharts-tooltip-wrapper .bg-slate-900\/95 {
 
 html.light #stats-panel .recharts-tooltip-wrapper .text-white {
   color: #0f172a !important;
+}
+
+/* Incoming Mobile Share Banner Light Mode */
+html.light #incoming-mobile-share-banner {
+  background: linear-gradient(to right, #eef2ff, #f8fafc, #eef2ff) !important;
+  border-color: #c7d2fe !important;
+  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.08) !important;
+}
+
+html.light #incoming-mobile-share-banner h4 {
+  color: #0f172a !important;
+}
+
+html.light #incoming-mobile-share-banner p {
+  color: #475569 !important;
 }

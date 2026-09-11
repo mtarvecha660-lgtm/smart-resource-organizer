@@ -9,7 +9,9 @@ import {
   Link as LinkIcon, 
   Check, 
   Copy, 
-  ExternalLink 
+  ExternalLink,
+  Share2,
+  Smartphone
 } from 'lucide-react';
 
 interface SendToVaultModalProps {
@@ -75,6 +77,27 @@ export const SendToVaultModal: React.FC<SendToVaultModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 space-y-5 text-xs text-slate-300">
+          {/* Method 0: Mobile Share Target (NEW) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/80 to-purple-950/60 border border-indigo-500/40 space-y-2 shadow-lg">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-indigo-600 text-white shrink-0">
+                <Share2 className="w-4 h-4" />
+              </span>
+              <span className="font-bold text-white text-sm">
+                📱 Native Mobile Share Sheet (One-Tap Share)
+              </span>
+              <span className="ml-auto text-[10px] bg-indigo-500/30 text-indigo-300 px-2 py-0.5 rounded-full font-semibold border border-indigo-400/30">
+                PWA Feature
+              </span>
+            </div>
+            <p className="text-slate-300 leading-relaxed pl-8">
+              When browsing any website, YouTube video, document, or tweet on your phone, tap <strong className="text-white">Share</strong> in your browser or app, then choose <strong className="text-indigo-300">"Smart Resource Organizer"</strong>.
+            </p>
+            <p className="text-indigo-300/90 leading-relaxed pl-8 text-[11px] font-medium">
+              ✨ An edit window immediately pops up pre-filled with the identified link, letting you enter your custom title, personal notes/description, tags, or switch categories before saving to your vault!
+            </p>
+          </div>
+
           {/* Method 1: The Quick Send Bar */}
           <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-start gap-3">
             <div className="p-2 rounded-lg bg-indigo-600/15 text-indigo-400 shrink-0 mt-0.5">

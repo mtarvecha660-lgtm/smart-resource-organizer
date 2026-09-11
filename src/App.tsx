@@ -51,6 +51,15 @@ import { GlobalDropZone } from './components/GlobalDropZone';
 import { SendToVaultModal } from './components/SendToVaultModal';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { IncomingShareBanner } from './components/IncomingShareBanner';
+import { IncomingShareModal } from './components/IncomingShareModal';
+import { QuickShareScreen } from './components/QuickShareScreen';
+import { 
+  extractIncomingShareFromUrl, 
+  cleanShareUrlParams, 
+  storePendingShare, 
+  popPendingShare 
+} from './lib/shareReceiver';
 
 export default function App() {
   return (
@@ -124,6 +133,43 @@ function SmartResourceDashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isQuickSaving, setIsQuickSaving] = useState(false);
   const [isSendHelpModalOpen, setIsSendHelpModalOpen] = useState(false);
+  const [incomingSharedItem, setIncomingSharedItem] = useState<ResourceItem | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Standalone Quick Share Mode (when opened from mobile share sheet to only show popup without entering the app)
+  const [isQuickShareMode, setIsQuickShareMode] = useState<boolean>(() => {
+    const incoming = extractIncomingShareFromUrl();
+    return !!(incoming && incoming.rawString);
+  });
+  const [pendingShareModalData, setPendingShareModalData] = useState<{
+    url: string;
+    title: string;
+    description: string;
+    category: ResourceCategory;
+    tags: string[];
+  } | null>(() => {
+    const incoming = extractIncomingShareFromUrl();
+    if (incoming && incoming.rawString) {
+      const parsed = parseQuickSendInput(incoming.rawString);
+      const url = incoming.url || parsed.formData.url;
+      const title =
+        incoming.title && incoming.title !== incoming.url
+          ? incoming.title
+          : parsed.formData.title;
+      let description = parsed.formData.description;
+      if (incoming.text && incoming.text !== incoming.url && incoming.text !== incoming.title) {
+        description = incoming.text.replace(url, '').trim() || incoming.text;
+      }
+      return {
+        url,
+        title,
+        description,
+        category: parsed.formData.category,
+        tags: parsed.formData.tags,
+      };
+    }
+    return null;
+  });
 
   // Toast feedback
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -281,47 +327,62 @@ function SmartResourceDashboard() {
     }
   };
 
-  // Quick Send & Save Anything (URL, text note, dropped link, or clipboard)
-  const handleQuickSend = useCallback(async (rawText: string): Promise<boolean> => {
-    if (!user) {
-      showToast('Please sign in to save resources', 'error');
-      return false;
-    }
-    const trimmed = rawText.trim();
-    if (!trimmed) return false;
+  // Quick Send & Save Anything (URL, text note, dropped link, or clipboard, or mobile share)
+  const handleQuickSend = useCallback(
+    async (rawText: string, isFromShare = false): Promise<boolean> => {
+      if (!user) {
+        showToast('Please sign in to save resources', 'error');
+        return false;
+      }
+      const trimmed = rawText.trim();
+      if (!trimmed) return false;
 
-    setIsQuickSaving(true);
-    const parsed = parseQuickSendInput(trimmed);
-    const tempId = `temp-quick-${Date.now()}`;
-    const optimisticItem: ResourceItem = {
-      id: tempId,
-      uid: user.uid,
-      title: parsed.formData.title,
-      url: parsed.formData.url,
-      category: parsed.formData.category,
-      description: parsed.formData.description,
-      tags: parsed.formData.tags,
-      createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-    };
+      setIsQuickSaving(true);
+      const parsed = parseQuickSendInput(trimmed);
+      const tempId = `temp-quick-${Date.now()}`;
+      const optimisticItem: ResourceItem = {
+        id: tempId,
+        uid: user.uid,
+        title: parsed.formData.title,
+        url: parsed.formData.url,
+        category: parsed.formData.category,
+        description: parsed.formData.description,
+        tags: parsed.formData.tags,
+        createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+      };
 
-    // Optimistic UI state update
-    setResources((prev) => [optimisticItem, ...prev]);
+      // Optimistic UI state update
+      setResources((prev) => [optimisticItem, ...prev]);
 
-    try {
-      await createResource(user.uid, parsed.formData, tempId);
-      showToast(`⚡ Saved "${parsed.formData.title}" to ${parsed.formData.category}!`, 'success');
-      return true;
-    } catch (err: unknown) {
-      console.error('Quick save error:', err);
-      // Revert optimistic update on failure
-      setResources((prev) => prev.filter((item) => item.id !== tempId));
-      const msg = err instanceof Error ? err.message : 'Failed to save to Firestore';
-      showToast(`Error saving: ${msg}`, 'error');
-      return false;
-    } finally {
-      setIsQuickSaving(false);
-    }
-  }, [user, showToast]);
+      if (isFromShare) {
+        setIncomingSharedItem(optimisticItem);
+      }
+
+      try {
+        await createResource(user.uid, parsed.formData, tempId);
+        showToast(
+          isFromShare
+            ? `📱 Shared resource organized into ${parsed.formData.category}!`
+            : `⚡ Saved "${parsed.formData.title}" to ${parsed.formData.category}!`,
+          'success'
+        );
+        return true;
+      } catch (err: unknown) {
+        console.error('Quick save error:', err);
+        // Revert optimistic update on failure
+        setResources((prev) => prev.filter((item) => item.id !== tempId));
+        if (isFromShare) {
+          setIncomingSharedItem(null);
+        }
+        const msg = err instanceof Error ? err.message : 'Failed to save to Firestore';
+        showToast(`Error saving: ${msg}`, 'error');
+        return false;
+      } finally {
+        setIsQuickSaving(false);
+      }
+    },
+    [user, showToast]
+  );
 
   // Global Ctrl+V / Cmd+V paste-to-save listener
   useEffect(() => {
@@ -347,23 +408,110 @@ function SmartResourceDashboard() {
     return () => window.removeEventListener('paste', handleGlobalPaste);
   }, [user, handleQuickSend]);
 
-  // Detect incoming ?saveUrl=... or ?send=... from bookmarklet or external share
-  useEffect(() => {
-    if (!user) return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const saveUrl = params.get('saveUrl') || params.get('send') || params.get('url');
-      const saveTitle = params.get('title');
-      if (saveUrl) {
-        const fullText = saveTitle ? `${saveTitle}: ${saveUrl}` : saveUrl;
-        handleQuickSend(fullText);
-        // Clean query parameters from URL without reloading the page
-        window.history.replaceState({}, document.title, window.location.pathname);
+  // Save handler for the Incoming Share Popup Modal
+  const handleSaveIncomingShare = useCallback(
+    async (formData: ResourceFormData): Promise<boolean> => {
+      if (!user) {
+        showToast('Please sign in to save resources', 'error');
+        return false;
       }
-    } catch (e) {
-      console.warn('URL param parse error:', e);
+
+      setIsSubmitting(true);
+      const tempId = `temp-share-${Date.now()}`;
+      const optimisticItem: ResourceItem = {
+        id: tempId,
+        uid: user.uid,
+        title: formData.title,
+        url: formData.url,
+        category: formData.category,
+        description: formData.description,
+        tags: formData.tags,
+        createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+      };
+
+      // Optimistic UI state update
+      setResources((prev) => [optimisticItem, ...prev]);
+
+      try {
+        await createResource(user.uid, formData, tempId);
+        showToast(`📱 Saved "${formData.title}" to ${formData.category}!`, 'success');
+        return true;
+      } catch (err: unknown) {
+        console.error('Share save error:', err);
+        // Revert optimistic update on failure
+        setResources((prev) => prev.filter((item) => item.id !== tempId));
+        const msg = err instanceof Error ? err.message : 'Failed to save to Firestore';
+        showToast(`Error saving: ${msg}`, 'error');
+        return false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [user, showToast]
+  );
+
+  // Detect incoming share from mobile share sheet, external bookmarklet, or pending share
+  useEffect(() => {
+    // Wait until Firebase authentication state is determined
+    if (authLoading) return;
+
+    // 1. Check if URL has incoming share parameters from Web Share Target or external link
+    const incoming = extractIncomingShareFromUrl();
+    if (incoming && incoming.rawString) {
+      cleanShareUrlParams();
+      const parsed = parseQuickSendInput(incoming.rawString);
+      const url = incoming.url || parsed.formData.url;
+      const title =
+        incoming.title && incoming.title !== incoming.url
+          ? incoming.title
+          : parsed.formData.title;
+      let description = parsed.formData.description;
+      if (incoming.text && incoming.text !== incoming.url && incoming.text !== incoming.title) {
+        description = incoming.text.replace(url, '').trim() || incoming.text;
+      }
+
+      const shareData = {
+        url,
+        title,
+        description,
+        category: parsed.formData.category,
+        tags: parsed.formData.tags,
+      };
+
+      if (user) {
+        // Pop up the window where user can enter/edit title and description
+        setPendingShareModalData(shareData);
+        setIsShareModalOpen(true);
+      } else {
+        // Preserve for when user signs in
+        storePendingShare(incoming);
+      }
+    } else if (user) {
+      // 2. Check if a share was received on mobile before the user logged in
+      const pending = popPendingShare();
+      if (pending && pending.rawString) {
+        const parsed = parseQuickSendInput(pending.rawString);
+        const url = pending.url || parsed.formData.url;
+        const title =
+          pending.title && pending.title !== pending.url
+            ? pending.title
+            : parsed.formData.title;
+        let description = parsed.formData.description;
+        if (pending.text && pending.text !== pending.url && pending.text !== pending.title) {
+          description = pending.text.replace(url, '').trim() || pending.text;
+        }
+
+        setPendingShareModalData({
+          url,
+          title,
+          description,
+          category: parsed.formData.category,
+          tags: parsed.formData.tags,
+        });
+        setIsShareModalOpen(true);
+      }
     }
-  }, [user, handleQuickSend]);
+  }, [user, authLoading]);
 
   // 2. Optimistic Update Resource
   const handleUpdateResource = async (formData: ResourceFormData) => {
@@ -682,6 +830,19 @@ function SmartResourceDashboard() {
 
         {/* Main Panel Content */}
         <main className="flex-1 p-4 sm:p-6">
+          {/* Incoming Mobile Share Banner (Auto-detects and confirms shared items from Android) */}
+          {incomingSharedItem && (
+            <IncomingShareBanner
+              item={incomingSharedItem}
+              onEdit={(item) => {
+                setEditingItem(item);
+                setIsAddModalOpen(true);
+                setIncomingSharedItem(null);
+              }}
+              onDismiss={() => setIncomingSharedItem(null)}
+            />
+          )}
+
           {/* Quick Send & Save Bar (Auto-extracts URLs, tags, categorizes & saves) */}
           <QuickSendBar
             onQuickSave={handleQuickSend}
@@ -864,6 +1025,18 @@ function SmartResourceDashboard() {
         }}
         onSubmit={editingItem ? handleUpdateResource : handleCreateResource}
         initialData={editingItem}
+        loading={isSubmitting}
+      />
+
+      {/* Incoming Share Review & Edit Window */}
+      <IncomingShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => {
+          setIsShareModalOpen(false);
+          setPendingShareModalData(null);
+        }}
+        onSave={handleSaveIncomingShare}
+        initialData={pendingShareModalData}
         loading={isSubmitting}
       />
 

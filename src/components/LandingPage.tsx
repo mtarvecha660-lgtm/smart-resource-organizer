@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Sun,
-  Moon
+  Moon,
+  Share2
 } from 'lucide-react';
 import { signInWithPopup, auth, googleProvider } from '../lib/firebase';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -30,6 +31,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [hasPendingShare] = useState(() => {
+    try {
+      return !!localStorage.getItem('sro_pending_mobile_share');
+    } catch {
+      return false;
+    }
+  });
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -122,6 +130,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         )}
 
+        {hasPendingShare && (
+          <div className="mb-8 p-4 rounded-2xl bg-indigo-950/80 border border-indigo-500/40 text-indigo-200 text-sm flex items-center justify-between gap-3 shadow-lg shadow-indigo-950/50 animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-indigo-600 text-white shrink-0">
+                <Share2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm">📱 Incoming Mobile Share Detected!</p>
+                <p className="text-xs text-indigo-300 mt-0.5">
+                  Sign in below to review the title, description, and save into your vault.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleGoogleSignIn}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow transition-colors cursor-pointer shrink-0"
+            >
+              Sign In & Review
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Column: Hero Text */}
           <div className="lg:col-span-7 space-y-6">
@@ -178,6 +208,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Regex auto-categorization</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>Mobile Share Sheet target</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>Installable PWA Home Screen app</span>
               </div>
             </div>
           </div>

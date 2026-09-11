@@ -124,14 +124,25 @@ export const InstallModal: React.FC<InstallModalProps> = ({ isOpen, onClose }) =
 
           {/* Android Chrome Instructions */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
-              <Smartphone className="w-4 h-4 text-emerald-400" />
-              <span>Android (Chrome / Edge / Firefox)</span>
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <span>Android (Chrome / Edge / Firefox)</span>
+              </div>
+              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-mono">
+                Supports Mobile Share Sheet
+              </span>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs text-slate-300">
               <p className="leading-relaxed">
                 Tap the <strong className="text-white">three dots (⋮)</strong> in the top right of Chrome, then select <strong className="text-white">"Install app"</strong> or <strong className="text-white">"Add to Home screen"</strong>.
               </p>
+              <div className="p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-indigo-200 text-[11px] leading-relaxed">
+                <strong className="text-white flex items-center gap-1 mb-0.5">
+                  <Share2 className="w-3 h-3 text-indigo-400" /> Direct Mobile Sharing:
+                </strong>
+                Once installed from Chrome, Smart Resource Organizer appears directly in your Android phone's <strong>Share</strong> menu. Tap <em>Share &gt; SmartOrg</em> in Chrome, YouTube, or docs to pop up the window where you can customize title, description, tags, and category before saving into your vault!
+              </div>
             </div>
           </div>
 
