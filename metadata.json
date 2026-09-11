@@ -1,0 +1,6 @@
+{
+  "name": "Smart Resource Organizer",
+  "description": "A production-ready, highly secure personal dashboard for organizing links, documents, GitHub repositories, and reels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

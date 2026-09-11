@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#4338ca" />
+      <stop offset="100%" stop-color="#312e81" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.2" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Inner Soft Border -->
+  <rect x="8" y="8" width="496" height="496" rx="104" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4" />
+
+  <!-- Central Symbol Group -->
+  <g filter="url(#dropShadow)" transform="translate(106, 106)">
+    <!-- Main Organizer Folder / Vault Shape -->
+    <!-- Folder Back Plate -->
+    <path d="M 30 50 C 30 35 42 24 56 24 L 120 24 C 132 24 142 30 148 40 L 164 64 L 244 64 C 258 64 270 76 270 90 L 270 230 C 270 244 258 256 244 256 L 56 256 C 42 256 30 244 30 230 Z" fill="#1e1b4b" opacity="0.6" />
+    
+    <!-- Folder Front Flap -->
+    <rect x="24" y="84" width="252" height="176" rx="28" fill="url(#glowGrad)" stroke="rgba(255,255,255,0.3)" stroke-width="3" />
+
+    <!-- Lightning / Spark Bolt (Quick Send) -->
+    <path d="M 160 96 L 120 172 L 148 172 L 136 240 L 188 156 L 158 156 Z" fill="url(#accentGrad)" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" />
+
+    <!-- Mini Stars / AI Sparkles -->
+    <circle cx="76" cy="130" r="5" fill="#38bdf8" />
+    <circle cx="224" cy="116" r="6" fill="#a5b4fc" />
+    <circle cx="216" cy="214" r="4" fill="#38bdf8" />
+  </g>
+</svg>
