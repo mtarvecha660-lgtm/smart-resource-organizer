@@ -1,5 +1,6 @@
-import { extractUrlFromText, parseQuickSendInput, ParsedQuickSendResult } from './quickSendParser';
-import { autoCategorizeUrl, suggestTitleFromUrl } from './autoCategorize';
+// File: src/lib/shareReceiver.ts
+import { parseQuickSendInput } from './quickSendParser';
+import { autoCategorizeUrl } from './autoCategorize';
 import { ResourceFormData } from '../types/resource';
 
 export interface IncomingSharedData {
@@ -14,29 +15,30 @@ const STORAGE_KEY = 'sro_pending_mobile_share';
 /**
  * Checks current window.location.search for incoming share parameters
  * sent by Android Share Sheet / Web Share Target or external bookmarklets.
+ * Wrapped in defensive try/catch to ensure it never throws.
  */
 export function extractIncomingShareFromUrl(): IncomingSharedData | null {
   try {
+    if (typeof window === 'undefined' || !window.location || !window.location.search) {
+      return null;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const url = params.get('url') || params.get('share_url') || params.get('saveUrl') || params.get('link');
     const title = params.get('title') || params.get('share_title') || params.get('name');
     const text = params.get('text') || params.get('share_text') || params.get('send');
 
-    // If none of these share parameters are present, no share occurred
     if (!url && !title && !text) {
       return null;
     }
 
-    // Build the most descriptive raw string for our parser
     let rawString = '';
 
-    // If URL is explicitly given
     if (url && url.trim()) {
       const trimmedUrl = url.trim();
       const trimmedTitle = title ? title.trim() : '';
       const trimmedText = text ? text.trim() : '';
 
-      // If text has distinct content not identical to the URL
       if (trimmedText && trimmedText !== trimmedUrl) {
         rawString = trimmedTitle ? `${trimmedTitle} - ${trimmedText} ${trimmedUrl}` : `${trimmedText} ${trimmedUrl}`;
       } else if (trimmedTitle && trimmedTitle !== trimmedUrl) {
@@ -45,7 +47,6 @@ export function extractIncomingShareFromUrl(): IncomingSharedData | null {
         rawString = trimmedUrl;
       }
     } else if (text && text.trim()) {
-      // Often Android apps (Twitter, YouTube, Instagram) put the link directly in 'text'
       const trimmedText = text.trim();
       const trimmedTitle = title ? title.trim() : '';
       if (trimmedTitle && !trimmedText.includes(trimmedTitle)) {
@@ -64,17 +65,17 @@ export function extractIncomingShareFromUrl(): IncomingSharedData | null {
       rawString: rawString.trim(),
     };
   } catch (err) {
-    console.warn('Error parsing incoming share from URL:', err);
+    console.warn('Error extracting incoming share from URL:', err);
     return null;
   }
 }
 
 /**
- * Stores shared data in localStorage if the user is unauthenticated,
- * so it can be saved immediately once they log in.
+ * Stores shared data in localStorage if the user is unauthenticated.
  */
 export function storePendingShare(data: IncomingSharedData): void {
   try {
+    if (typeof localStorage === 'undefined') return;
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -92,19 +93,31 @@ export function storePendingShare(data: IncomingSharedData): void {
  */
 export function popPendingShare(): IncomingSharedData | null {
   try {
+    if (typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     localStorage.removeItem(STORAGE_KEY);
+
     const parsed = JSON.parse(raw);
-    // Ignore shares older than 24 hours
-    if (parsed.timestamp && Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000) {
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      parsed.timestamp &&
+      Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000
+    ) {
       return null;
     }
+
     return {
-      url: parsed.url,
-      title: parsed.title,
-      text: parsed.text,
-      rawString: parsed.rawString || parsed.url || parsed.text || '',
+      url: typeof parsed.url === 'string' ? parsed.url : null,
+      title: typeof parsed.title === 'string' ? parsed.title : null,
+      text: typeof parsed.text === 'string' ? parsed.text : null,
+      rawString:
+        typeof parsed.rawString === 'string'
+          ? parsed.rawString
+          : typeof parsed.url === 'string'
+          ? parsed.url
+          : '',
     };
   } catch (e) {
     console.warn('Could not retrieve pending share:', e);
@@ -117,6 +130,7 @@ export function popPendingShare(): IncomingSharedData | null {
  */
 export function cleanShareUrlParams(): void {
   try {
+    if (typeof window === 'undefined' || !window.location || !window.history) return;
     const url = new URL(window.location.href);
     const shareKeys = [
       'url',
@@ -138,7 +152,11 @@ export function cleanShareUrlParams(): void {
       }
     }
     if (changed) {
-      window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : ''));
+      window.history.replaceState(
+        {},
+        document.title,
+        url.pathname + (url.search ? url.search : '')
+      );
     }
   } catch (e) {
     console.warn('Could not clean URL params:', e);
@@ -146,34 +164,40 @@ export function cleanShareUrlParams(): void {
 }
 
 /**
- * Converts IncomingSharedData into prefilled ResourceFormData
- * so the user can review and edit title, description, category, and tags
- * in the pop-up window before saving to Firestore.
+ * Converts IncomingSharedData into prefilled ResourceFormData.
+ * Guarantees a valid ResourceFormData object even with corrupted or partial input.
  */
 export function convertIncomingShareToFormData(data: IncomingSharedData): ResourceFormData {
-  const rawCandidate = data.rawString || data.url || data.text || data.title || '';
-  const baseline = parseQuickSendInput(rawCandidate);
-  const formData: ResourceFormData = { ...baseline.formData };
+  try {
+    const rawCandidate = data.rawString || data.url || data.text || data.title || '';
+    const baseline = parseQuickSendInput(rawCandidate);
+    const formData: ResourceFormData = { ...baseline.formData };
 
-  // Prioritize explicit URL if provided
-  if (data.url && data.url.trim()) {
-    formData.url = data.url.trim();
-    formData.category = autoCategorizeUrl(formData.url);
-  }
-
-  // Prioritize explicit title if provided and non-trivial
-  if (data.title && data.title.trim() && data.title.trim() !== formData.url) {
-    formData.title = data.title.trim();
-  }
-
-  // Prioritize explicit text for description if non-empty
-  if (data.text && data.text.trim()) {
-    const textWithoutUrl = data.text.replace(/https?:\/\/[^\s]+/gi, '').trim();
-    if (textWithoutUrl) {
-      formData.description = textWithoutUrl;
+    if (data.url && data.url.trim()) {
+      formData.url = data.url.trim();
+      formData.category = autoCategorizeUrl(formData.url);
     }
+
+    if (data.title && data.title.trim() && data.title.trim() !== formData.url) {
+      formData.title = data.title.trim();
+    }
+
+    if (data.text && data.text.trim()) {
+      const textWithoutUrl = data.text.replace(/https?:\/\/[^\s]+/gi, '').trim();
+      if (textWithoutUrl) {
+        formData.description = textWithoutUrl;
+      }
+    }
+
+    return formData;
+  } catch (err) {
+    console.error('convertIncomingShareToFormData error fallback:', err);
+    return {
+      title: data.title || 'Shared Resource',
+      url: data.url || `https://smart-resource.local/notes/${Date.now().toString(36)}`,
+      category: 'Document',
+      description: data.text || data.rawString || 'Captured share',
+      tags: ['share', 'mobile'],
+    };
   }
-
-  return formData;
 }
-

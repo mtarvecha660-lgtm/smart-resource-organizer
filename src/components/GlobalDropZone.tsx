@@ -1,5 +1,6 @@
+// File: src/components/GlobalDropZone.tsx
 import React, { useEffect, useState } from 'react';
-import { DownloadCloud, Globe, FileText, Github, Film, Sparkles } from 'lucide-react';
+import { DownloadCloud, Globe, FileText, Github, Film } from 'lucide-react';
 
 interface GlobalDropZoneProps {
   onDropSave: (content: string) => void;
@@ -7,25 +8,23 @@ interface GlobalDropZoneProps {
 
 export const GlobalDropZone: React.FC<GlobalDropZoneProps> = ({ onDropSave }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [dragCounter, setDragCounter] = useState(0);
 
   useEffect(() => {
+    let dragCounter = 0;
+
     const handleDragEnter = (e: DragEvent) => {
       e.preventDefault();
-      setDragCounter((prev) => prev + 1);
+      dragCounter += 1;
       setIsDragging(true);
     };
 
     const handleDragLeave = (e: DragEvent) => {
       e.preventDefault();
-      setDragCounter((prev) => {
-        const next = prev - 1;
-        if (next <= 0) {
-          setIsDragging(false);
-          return 0;
-        }
-        return next;
-      });
+      dragCounter -= 1;
+      if (dragCounter <= 0) {
+        setIsDragging(false);
+        dragCounter = 0;
+      }
     };
 
     const handleDragOver = (e: DragEvent) => {
@@ -38,25 +37,22 @@ export const GlobalDropZone: React.FC<GlobalDropZoneProps> = ({ onDropSave }) =>
     const handleDrop = (e: DragEvent) => {
       e.preventDefault();
       setIsDragging(false);
-      setDragCounter(0);
+      dragCounter = 0;
 
       if (!e.dataTransfer) return;
 
-      // 1. Try URI-list (dragged link from browser address bar or link in webpage)
       const uri = e.dataTransfer.getData('text/uri-list');
       if (uri && uri.trim()) {
         onDropSave(uri.trim());
         return;
       }
 
-      // 2. Try text/plain (selected text, URL, or paragraph)
       const text = e.dataTransfer.getData('text/plain');
       if (text && text.trim()) {
         onDropSave(text.trim());
         return;
       }
 
-      // 3. Try dropped files (names or URLs)
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
         onDropSave(`${file.name} - document dropped into vault`);
@@ -79,31 +75,29 @@ export const GlobalDropZone: React.FC<GlobalDropZoneProps> = ({ onDropSave }) =>
   if (!isDragging) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md pointer-events-none transition-all">
-      <div className="w-full max-w-xl p-8 rounded-3xl border-2 border-dashed border-indigo-500 bg-slate-900/90 shadow-2xl flex flex-col items-center text-center animate-pulse">
-        <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 mb-4 shadow-lg shadow-indigo-600/20">
-          <DownloadCloud className="w-8 h-8" />
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 pointer-events-none">
+      <div className="w-full max-w-md p-6 rounded-lg border-2 border-dashed border-zinc-400 dark:border-zinc-600 bg-white dark:bg-zinc-900 shadow-2xl flex flex-col items-center text-center font-mono">
+        <DownloadCloud className="w-8 h-8 text-zinc-500 mb-2.5" />
 
-        <h3 className="text-xl font-bold text-white tracking-tight mb-2">
-          Drop Anything to Save to Vault
+        <h3 className="text-xs uppercase tracking-wider font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+          Drop Target Active
         </h3>
-        <p className="text-xs sm:text-sm text-slate-300 max-w-sm mb-6 leading-relaxed">
-          Release to automatically extract URLs, auto-categorize, generate tags, and store securely in your Firestore organizer.
+        <p className="font-sans text-xs text-zinc-500 max-w-xs mb-4 leading-relaxed">
+          Release content to ingest URL, extract metadata, and persist to Firestore.
         </p>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/15 text-blue-300 border border-blue-500/30">
-            <Globe className="w-3.5 h-3.5" /> Links
+        <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
+            <Globe className="w-3 h-3" /> Links
           </span>
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30">
-            <FileText className="w-3.5 h-3.5" /> Docs
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
+            <FileText className="w-3 h-3" /> Docs
           </span>
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-violet-500/15 text-violet-300 border border-violet-500/30">
-            <Github className="w-3.5 h-3.5" /> GitHub
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
+            <Github className="w-3 h-3" /> Repos
           </span>
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-pink-500/15 text-pink-300 border border-pink-500/30">
-            <Film className="w-3.5 h-3.5" /> Reels
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
+            <Film className="w-3 h-3" /> Media
           </span>
         </div>
       </div>

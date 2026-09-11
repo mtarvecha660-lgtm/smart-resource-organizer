@@ -1,184 +1,52 @@
+/* File: src/index.css */
 @import "tailwindcss";
 
 /* -------------------------------------------------------------
- * Theme Configuration: Light & Dark Mode Support
- * Root & Body conditional CSS class definitions
+ * Minimalist Design System: Linear & Vercel Inspired Monochrome
+ * Strict neutral surfaces, flat 1px borders, zero AI-slop gradients
  * ------------------------------------------------------------- */
 
 html.dark, body.dark {
   color-scheme: dark;
-  background-color: #020617;
-  color: #f8fafc;
+  background-color: #09090b;
+  color: #fafafa;
 }
 
 html.light, body.light {
   color-scheme: light;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #ffffff;
+  color: #09090b;
 }
 
-/* Light Mode Surface Transformations */
-html.light .bg-slate-950 {
-  background-color: #f8fafc !important;
+/* Custom scrollbar matching flat minimalist architecture */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-html.light .bg-slate-900 {
-  background-color: #ffffff !important;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-html.light .bg-slate-900\/90 {
-  background-color: rgba(255, 255, 255, 0.96) !important;
+html.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
 }
 
-html.light .bg-slate-900\/80 {
-  background-color: rgba(255, 255, 255, 0.90) !important;
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }
 
-html.light .bg-slate-900\/60,
-html.light .bg-slate-900\/40,
-html.light .bg-slate-900\/30 {
-  background-color: rgba(241, 245, 249, 0.7) !important;
+html.light ::-webkit-scrollbar-thumb {
+  background: #e4e4e7;
+  border-radius: 3px;
 }
 
-html.light .bg-slate-800 {
-  background-color: #f1f5f9 !important;
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #d4d4d8;
 }
 
-html.light .bg-slate-800\/80 {
-  background-color: rgba(241, 245, 249, 0.9) !important;
-}
-
-html.light .bg-slate-800\/60 {
-  background-color: rgba(241, 245, 249, 0.7) !important;
-}
-
-html.light .bg-slate-800\/40 {
-  background-color: rgba(241, 245, 249, 0.5) !important;
-}
-
-html.light .bg-slate-950\/70,
-html.light .bg-slate-950\/60,
-html.light .bg-slate-950\/40 {
-  background-color: #ffffff !important;
-}
-
-/* Borders in Light Mode */
-html.light .border-slate-800,
-html.light .border-slate-800\/80,
-html.light .border-slate-800\/60 {
-  border-color: #e2e8f0 !important;
-}
-
-html.light .border-slate-700,
-html.light .border-slate-700\/80,
-html.light .border-slate-700\/60,
-html.light .border-slate-700\/50,
-html.light .border-slate-700\/40 {
-  border-color: #cbd5e1 !important;
-}
-
-/* Typography & Contrast in Light Mode */
-html.light .text-slate-100,
-html.light .text-white {
-  color: #0f172a !important;
-}
-
-html.light .text-slate-200 {
-  color: #1e293b !important;
-}
-
-html.light .text-slate-300 {
-  color: #334155 !important;
-}
-
-html.light .text-slate-400 {
-  color: #64748b !important;
-}
-
-html.light .text-slate-500 {
-  color: #94a3b8 !important;
-}
-
-/* Interactive Hover States in Light Mode */
-html.light .hover\:bg-slate-800:hover,
-html.light .hover\:bg-slate-800\/60:hover {
-  background-color: #e2e8f0 !important;
-}
-
-html.light .hover\:bg-slate-700:hover,
-html.light .hover\:bg-slate-700\/70:hover {
-  background-color: #cbd5e1 !important;
-}
-
-html.light .hover\:text-white:hover,
-html.light .hover\:text-slate-200:hover {
-  color: #0f172a !important;
-}
-
-/* Inputs & Form Controls in Light Mode */
-html.light input,
-html.light textarea {
-  color: #0f172a !important;
-}
-
-html.light input::placeholder,
-html.light textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-/* Maintain crisp text inside primary buttons */
-html.light .bg-indigo-600,
-html.light .bg-indigo-600 *,
-html.light .bg-rose-600,
-html.light .bg-rose-600 * {
-  color: #ffffff !important;
-}
-
-/* Modals & Popups Light Elevation */
-html.light #resource-modal,
-html.light #delete-confirm-modal,
-html.light #send-to-vault-modal,
-html.light #pwa-install-guide-modal,
-html.light #incoming-share-modal,
-html.light #share-confirm-modal,
-html.light [id^="action-menu-"] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04) !important;
-}
-
-html.light .bg-slate-950\/80,
-html.light .bg-slate-950\/70 {
-  background-color: rgba(15, 23, 42, 0.45) !important;
-}
-
-/* Recharts Custom Tooltip in Light Mode */
-html.light #stats-panel .recharts-cartesian-grid line {
-  stroke: #e2e8f0 !important;
-}
-
-html.light #stats-panel .recharts-tooltip-wrapper .bg-slate-900\/95 {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #0f172a !important;
-  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1) !important;
-}
-
-html.light #stats-panel .recharts-tooltip-wrapper .text-white {
-  color: #0f172a !important;
-}
-
-/* Incoming Mobile Share Banner Light Mode */
-html.light #incoming-mobile-share-banner {
-  background: linear-gradient(to right, #eef2ff, #f8fafc, #eef2ff) !important;
-  border-color: #c7d2fe !important;
-  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.08) !important;
-}
-
-html.light #incoming-mobile-share-banner h4 {
-  color: #0f172a !important;
-}
-
-html.light #incoming-mobile-share-banner p {
-  color: #475569 !important;
+/* Ensure monospace numerals display tabular numbers for clean alignment */
+.font-mono {
+  font-feature-settings: "tnum" 1;
 }

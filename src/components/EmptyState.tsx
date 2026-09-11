@@ -1,13 +1,13 @@
+// File: src/components/EmptyState.tsx
 import React from 'react';
-import { 
-  Globe, 
-  FileText, 
-  Github, 
-  Film, 
-  Search, 
-  Plus, 
-  Sparkles,
-  Inbox
+import {
+  Globe,
+  FileText,
+  Github,
+  Film,
+  Search,
+  Plus,
+  Inbox,
 } from 'lucide-react';
 import { ResourceCategory } from '../types/resource';
 
@@ -28,64 +28,59 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     switch (category) {
       case 'Link':
         return {
-          icon: <Globe className="w-8 h-8 text-blue-400" />,
+          icon: <Globe className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />,
           title: 'No Web Links Saved',
-          description:
-            'Bookmark blogs, design systems, articles, or tools to keep them at your fingertips.',
-          tip: 'Tip: Any standard website URL defaults to the Web Links category.',
-          actionText: 'Add First Link',
+          description: 'Store bookmarks, web applications, and documentation links.',
+          tip: 'Standard URLs default to Web Links category.',
+          actionText: 'Add Link',
           catParam: 'Link' as ResourceCategory,
         };
       case 'Document':
         return {
-          icon: <FileText className="w-8 h-8 text-amber-400" />,
+          icon: <FileText className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />,
           title: 'No Documents Found',
-          description:
-            'Store technical specifications, academic papers, books, or documentation.',
-          tip: 'Tip: Links ending in .pdf, .docx, or .md are automatically routed here.',
+          description: 'Save PDF, DOCX, Markdown or specification documents.',
+          tip: 'Files ending in .pdf, .docx, or .md are routed here automatically.',
           actionText: 'Add Document',
           catParam: 'Document' as ResourceCategory,
         };
       case 'GitHub':
         return {
-          icon: <Github className="w-8 h-8 text-violet-400" />,
-          title: 'No GitHub Repositories',
-          description:
-            'Track open-source libraries, boilerplates, and developer tools you discover.',
-          tip: 'Tip: Paste any github.com repository URL and it will be auto-categorized.',
-          actionText: 'Add GitHub Repo',
+          icon: <Github className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />,
+          title: 'No Repositories',
+          description: 'Track open-source libraries and code repositories.',
+          tip: 'Any github.com link is auto-categorized as GitHub.',
+          actionText: 'Add Repo',
           catParam: 'GitHub' as ResourceCategory,
         };
       case 'Reel':
         return {
-          icon: <Film className="w-8 h-8 text-pink-400" />,
-          title: 'No Reels or Media',
-          description:
-            'Save inspiring video tutorials, tech breakdowns, short-form reels, or clips.',
-          tip: 'Tip: URLs from Instagram, TikTok, or YouTube are automatically placed here.',
-          actionText: 'Add Video or Reel',
+          icon: <Film className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />,
+          title: 'No Media or Reels',
+          description: 'Store technical video breakdowns and tutorials.',
+          tip: 'YouTube, TikTok, and media URLs are routed here.',
+          actionText: 'Add Video',
           catParam: 'Reel' as ResourceCategory,
         };
       case 'Search':
         return {
-          icon: <Search className="w-8 h-8 text-indigo-400" />,
+          icon: <Search className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />,
           title: 'No Matching Resources',
           description: searchQuery
-            ? `We couldn't find anything matching "${searchQuery}".`
-            : 'No resources match your active search filters or tags.',
-          tip: 'Tip: Try searching by partial title, domain, description, or tag names.',
-          actionText: 'Clear Search',
+            ? `No records match "${searchQuery}".`
+            : 'No resources match current filter criteria.',
+          tip: 'Search checks titles, descriptions, tags, and hostnames.',
+          actionText: 'Clear Filters',
           isClearSearch: true,
         };
       case 'All':
       default:
         return {
-          icon: <Inbox className="w-8 h-8 text-indigo-400" />,
-          title: 'Your Resource Vault is Empty',
-          description:
-            'Start organizing your digital library. Add your first link, paper, repository, or video.',
-          tip: 'Tip: Paste any URL into Add Resource and let Auto-Categorize do the work.',
-          actionText: 'Add Your First Resource',
+          icon: <Inbox className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />,
+          title: 'Vault is Empty',
+          description: 'Your collection has no resources saved yet.',
+          tip: 'Paste a link into the Quick Send bar above or drag-and-drop.',
+          actionText: 'Add First Item',
           catParam: undefined,
         };
     }
@@ -96,31 +91,28 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       id={`empty-state-${category.toLowerCase()}`}
-      className="w-full flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/40"
+      className="w-full flex flex-col items-center justify-center p-8 text-center rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30"
     >
-      <div className="w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center mb-4 shadow-inner">
+      <div className="w-10 h-10 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 flex items-center justify-center mb-3">
         {details.icon}
       </div>
 
-      <h3 className="text-base font-semibold text-white tracking-tight mb-1.5">
+      <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider mb-1 font-mono">
         {details.title}
       </h3>
 
-      <p className="text-xs sm:text-sm text-slate-400 max-w-sm mb-4 leading-relaxed">
+      <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mb-3">
         {details.description}
       </p>
 
-      {/* Helpful Tip */}
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-950/40 border border-indigo-900/50 text-[11px] text-indigo-300 mb-6 max-w-md">
-        <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-        <span className="leading-snug text-left">{details.tip}</span>
+      <div className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500 mb-4">
+        {details.tip}
       </div>
 
-      {/* Action Button */}
       {details.isClearSearch ? (
         <button
           onClick={onClearSearch}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors cursor-pointer"
         >
           Clear Filters
         </button>
@@ -128,7 +120,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         onAddClick && (
           <button
             onClick={() => onAddClick(details.catParam)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{details.actionText}</span>

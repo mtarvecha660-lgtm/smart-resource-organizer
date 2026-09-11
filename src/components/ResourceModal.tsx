@@ -1,13 +1,13 @@
+// File: src/components/ResourceModal.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Sparkles, 
-  Globe, 
-  FileText, 
-  Github, 
-  Film, 
+import {
+  X,
+  Globe,
+  FileText,
+  Github,
+  Film,
   AlertCircle,
-  Plus
+  Plus,
 } from 'lucide-react';
 import { ResourceCategory, ResourceFormData, ResourceItem } from '../types/resource';
 import { validateUrl, autoCategorizeUrl, suggestTitleFromUrl } from '../lib/autoCategorize';
@@ -50,7 +50,6 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
         setUrlError(null);
         setAutoDetectedCategory(null);
       } else {
-        // Reset for new item
         setUrl('');
         setUrlError(null);
         setTitle('');
@@ -67,7 +66,6 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle URL Change & Auto-categorization
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setUrl(val);
@@ -85,16 +83,13 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
       setUrlError(null);
     }
 
-    // Auto categorize based on the regex specifications
     const detected = autoCategorizeUrl(val);
     setAutoDetectedCategory(detected);
 
-    // If user hasn't explicitly clicked a category button, auto-select it
     if (!isCategoryUserSelected) {
       setCategory(detected);
     }
 
-    // Suggest title if empty
     if (!title.trim()) {
       const suggested = suggestTitleFromUrl(val);
       if (suggested) {
@@ -159,56 +154,53 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
   };
 
   const categoryOptions: { label: string; value: ResourceCategory; icon: React.ReactNode }[] = [
-    { label: 'Link', value: 'Link', icon: <Globe className="w-4 h-4" /> },
-    { label: 'Document', value: 'Document', icon: <FileText className="w-4 h-4" /> },
-    { label: 'GitHub', value: 'GitHub', icon: <Github className="w-4 h-4" /> },
-    { label: 'Reel', value: 'Reel', icon: <Film className="w-4 h-4" /> },
+    { label: 'Link', value: 'Link', icon: <Globe className="w-3.5 h-3.5" /> },
+    { label: 'Document', value: 'Document', icon: <FileText className="w-3.5 h-3.5" /> },
+    { label: 'GitHub', value: 'GitHub', icon: <Github className="w-3.5 h-3.5" /> },
+    { label: 'Reel', value: 'Reel', icon: <Film className="w-3.5 h-3.5" /> },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" 
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div
+        className="fixed inset-0 bg-black/60 transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal Container */}
       <div
         id="resource-modal"
-        className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 z-10 my-8 text-slate-100"
+        className="relative w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl p-5 z-10 my-8 text-zinc-900 dark:text-zinc-100"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
           <div>
-            <h2 className="text-lg font-semibold text-white tracking-tight">
-              {initialData ? 'Edit Resource' : 'Add New Resource'}
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              {initialData ? 'Edit Resource' : 'Add Resource'}
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Save links, docs, repositories, or reels to your personal vault
+            <p className="font-mono text-[11px] text-zinc-500 mt-0.5">
+              Target destination: Firestore isolation
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
             aria-label="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4.5 mt-5">
+        <form onSubmit={handleSubmit} className="space-y-3.5 mt-4">
           {/* URL Input */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="resource-url-input" className="text-xs font-semibold text-slate-300">
-                Resource URL <span className="text-rose-400">*</span>
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="resource-url-input" className="font-mono text-[11px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                URL <span className="text-red-500">*</span>
               </label>
               {autoDetectedCategory && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
-                  <Sparkles className="w-3 h-3 text-indigo-400" />
-                  <span>Auto-detected: {autoDetectedCategory}</span>
+                <span className="font-mono text-[10px] uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700/60">
+                  detected: {autoDetectedCategory}
                 </span>
               )}
             </div>
@@ -218,17 +210,16 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
               value={url}
               onChange={handleUrlChange}
               onBlur={handleUrlBlur}
-              placeholder="https://github.com/... or https://..."
-              className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition-all ${
+              placeholder="https://..."
+              className={`w-full px-3 py-2 rounded-md bg-zinc-50 dark:bg-zinc-950 border text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none transition-colors ${
                 urlError && (touched || url)
-                  ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
-                  : 'border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
+                  ? 'border-red-500 focus:border-red-500'
+                  : 'border-zinc-200 dark:border-zinc-800 focus:border-zinc-400 dark:focus:border-zinc-600'
               }`}
             />
-            {/* Inline Red Error Message */}
             {urlError && (touched || url) && (
-              <div id="url-inline-error" className="mt-1.5 flex items-center gap-1.5 text-xs text-rose-400">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <div id="url-inline-error" className="mt-1 flex items-center gap-1 text-[11px] font-mono text-red-500">
+                <AlertCircle className="w-3 h-3 shrink-0" />
                 <span>{urlError}</span>
               </div>
             )}
@@ -236,10 +227,10 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
 
           {/* Category Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2">
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
               Category
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               {categoryOptions.map((opt) => {
                 const isSelected = category === opt.value;
                 return (
@@ -248,10 +239,10 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     type="button"
                     id={`category-select-${opt.value.toLowerCase()}`}
                     onClick={() => handleSelectCategory(opt.value)}
-                    className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-mono transition-colors cursor-pointer border ${
                       isSelected
-                        ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500 shadow-sm'
-                        : 'bg-slate-950/40 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 font-medium'
+                        : 'bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
                     }`}
                   >
                     {opt.icon}
@@ -264,8 +255,8 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
 
           {/* Title Input */}
           <div>
-            <label htmlFor="resource-title-input" className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Title <span className="text-rose-400">*</span>
+            <label htmlFor="resource-title-input" className="block font-mono text-[11px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
+              Title <span className="text-red-500">*</span>
             </label>
             <input
               id="resource-title-input"
@@ -273,42 +264,42 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. React 19 Architecture Guide"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              placeholder="e.g. Distributed Consensus Engine"
+              className="w-full px-3 py-2 rounded-md bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
             />
           </div>
 
           {/* Description Input */}
           <div>
-            <label htmlFor="resource-desc-input" className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Description <span className="text-slate-500 font-normal">(optional)</span>
+            <label htmlFor="resource-desc-input" className="block font-mono text-[11px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
+              Description <span className="text-zinc-400 font-normal">(optional)</span>
             </label>
             <textarea
               id="resource-desc-input"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief context, key takeaways, or why you saved this..."
-              className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-700 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
+              placeholder="Context or notes..."
+              className="w-full px-3 py-1.5 rounded-md bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 resize-none"
             />
           </div>
 
           {/* Tags Input */}
           <div>
-            <label htmlFor="resource-tag-input" className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Tags <span className="text-slate-500 font-normal">(press Enter or comma to add)</span>
+            <label htmlFor="resource-tag-input" className="block font-mono text-[11px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
+              Tags <span className="text-zinc-400 font-normal">(comma or enter)</span>
             </label>
-            <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-700 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 flex flex-wrap items-center gap-1.5 min-h-[42px]">
+            <div className="p-1.5 rounded-md bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center gap-1 min-h-[38px]">
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-xs font-medium"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-mono text-[10px]"
                 >
                   #{tag}
                   <button
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
-                    className="text-indigo-400 hover:text-white ml-0.5 cursor-pointer"
+                    className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
                   >
                     &times;
                   </button>
@@ -320,19 +311,19 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleAddTag}
-                placeholder={tags.length === 0 ? "e.g. react, tutorial, api" : "Add more..."}
-                className="flex-1 bg-transparent border-none text-xs text-slate-100 placeholder-slate-500 focus:outline-none min-w-[100px]"
+                placeholder={tags.length === 0 ? "add tags..." : ""}
+                className="flex-1 bg-transparent border-none text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none min-w-[80px]"
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-800">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-200 dark:border-zinc-800">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-md text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -340,14 +331,14 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
               type="submit"
               id="resource-modal-submit-btn"
               disabled={loading || !!urlError || !url.trim() || !title.trim()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/20 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-3.5 h-3.5 border-2 border-zinc-400 border-t-zinc-900 dark:border-t-zinc-100 rounded-full animate-spin" />
               ) : (
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
               )}
-              <span>{initialData ? 'Save Changes' : 'Add Resource'}</span>
+              <span>{initialData ? 'Save Changes' : 'Create Item'}</span>
             </button>
           </div>
         </form>

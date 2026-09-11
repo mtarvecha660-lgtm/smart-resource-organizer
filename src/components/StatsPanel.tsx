@@ -1,24 +1,16 @@
+// File: src/components/StatsPanel.tsx
 import React, { useMemo, useState } from 'react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  CartesianGrid, 
-  Legend 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
 } from 'recharts';
-import { 
-  TrendingUp, 
-  Calendar, 
-  Layers, 
-  Sparkles, 
-  X, 
-  ChevronDown, 
-  ChevronUp,
-  BarChart2
-} from 'lucide-react';
+import { BarChart2, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { ResourceItem, ResourceCategory } from '../types/resource';
 
 interface StatsPanelProps {
@@ -37,17 +29,26 @@ interface DailyTrendPoint {
   total: number;
 }
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: DailyTrendPoint;
+    dataKey: string;
+    value: number;
+    color: string;
+  }>;
+}
+
 export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) => {
   const [chartMode, setChartMode] = useState<'stacked' | 'total'>('stacked');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Compute 30-day timeline data points
+  // Compute 30-day timeline metrics
   const { trendData, totalLast30Days, peakDay, mostActiveCategory, averageDaily } = useMemo(() => {
     const points: DailyTrendPoint[] = [];
     const dateMap = new Map<string, DailyTrendPoint>();
 
     const now = new Date();
-    // Build 30 days up to today
     for (let i = 29; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
@@ -57,11 +58,11 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) =>
       const dateKey = `${year}-${month}-${day}`;
 
       const label = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(d);
-      const fullDate = new Intl.DateTimeFormat('en-US', { 
-        weekday: 'short', 
-        month: 'short', 
+      const fullDate = new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
         day: 'numeric',
-        year: 'numeric' 
+        year: 'numeric',
       }).format(d);
 
       const entry: DailyTrendPoint = {
@@ -88,7 +89,6 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) =>
 
     let total30 = 0;
 
-    // Aggregate items into daily buckets
     resources.forEach((item) => {
       if (!item.createdAt) return;
 
@@ -117,9 +117,8 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) =>
       }
     });
 
-    // Determine Peak Day
     let maxCount = 0;
-    let peak: { date: string; count: number } = { date: 'None yet', count: 0 };
+    let peak: { date: string; count: number } = { date: 'None', count: 0 };
     points.forEach((pt) => {
       if (pt.total > maxCount) {
         maxCount = pt.total;
@@ -127,7 +126,6 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) =>
       }
     });
 
-    // Determine Most Active Category
     let topCategory: { name: string; count: number } = { name: 'None', count: 0 };
     (Object.keys(categoryCounts) as ResourceCategory[]).forEach((cat) => {
       if (categoryCounts[cat] > topCategory.count) {
@@ -146,58 +144,42 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) =>
     };
   }, [resources]);
 
-  // Custom Recharts Tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
     if (active && payload && payload.length) {
-      const dataPoint: DailyTrendPoint = payload[0].payload;
+      const dataPoint = payload[0].payload;
       return (
-        <div className="bg-slate-900/95 border border-slate-700/90 rounded-xl p-3 shadow-xl text-xs text-slate-100 min-w-[170px] backdrop-blur-md">
-          <p className="font-semibold text-white border-b border-slate-800 pb-1.5 mb-2">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-2.5 shadow-md text-xs font-mono">
+          <p className="text-zinc-900 dark:text-zinc-100 font-semibold border-b border-zinc-100 dark:border-zinc-800 pb-1 mb-1.5 font-sans">
             {dataPoint.fullDate}
           </p>
-          <div className="space-y-1 font-mono">
+          <div className="space-y-1 text-zinc-600 dark:text-zinc-400">
             {chartMode === 'stacked' ? (
               <>
-                <div className="flex items-center justify-between text-blue-300">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-400" />
-                    Web Links:
-                  </span>
-                  <span>{dataPoint.Link}</span>
+                <div className="flex justify-between gap-4">
+                  <span>Links:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100">{dataPoint.Link}</span>
                 </div>
-                <div className="flex items-center justify-between text-amber-300">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    Documents:
-                  </span>
-                  <span>{dataPoint.Document}</span>
+                <div className="flex justify-between gap-4">
+                  <span>Documents:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100">{dataPoint.Document}</span>
                 </div>
-                <div className="flex items-center justify-between text-violet-300">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-violet-400" />
-                    GitHub:
-                  </span>
-                  <span>{dataPoint.GitHub}</span>
+                <div className="flex justify-between gap-4">
+                  <span>GitHub:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100">{dataPoint.GitHub}</span>
                 </div>
-                <div className="flex items-center justify-between text-pink-300">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-pink-400" />
-                    Reels:
-                  </span>
-                  <span>{dataPoint.Reel}</span>
+                <div className="flex justify-between gap-4">
+                  <span>Reels:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100">{dataPoint.Reel}</span>
                 </div>
-                <div className="border-t border-slate-800 pt-1 mt-1 flex items-center justify-between font-semibold text-slate-200">
-                  <span>Total Added:</span>
+                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-1 flex justify-between gap-4 font-semibold text-zinc-900 dark:text-zinc-100">
+                  <span>Total:</span>
                   <span>{dataPoint.total}</span>
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-between text-indigo-300">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                  Total Resources:
-                </span>
-                <span className="font-bold">{dataPoint.total}</span>
+              <div className="flex justify-between gap-4 font-semibold text-zinc-900 dark:text-zinc-100">
+                <span>Total:</span>
+                <span>{dataPoint.total}</span>
               </div>
             )}
           </div>
@@ -210,48 +192,42 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) =>
   return (
     <div
       id="stats-panel"
-      className="mb-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden transition-all"
+      className="mb-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all"
     >
-      {/* Panel Header */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-            <BarChart2 className="w-4 h-4" />
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-center gap-2">
+          <BarChart2 className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-white tracking-tight">
-                Resource Creation Trends
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
+                Activity Metrics
               </h2>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
-                Last 30 Days
+              <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700/60">
+                30d window
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Daily additions, platform velocity, and collection activity
-            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Chart Display Mode Toggle */}
-          <div className="flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800 text-xs">
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-0.5 rounded border border-zinc-200 dark:border-zinc-700/60 font-mono text-[10px]">
             <button
               onClick={() => setChartMode('stacked')}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+              className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
                 chartMode === 'stacked'
-                  ? 'bg-indigo-600 text-white font-medium shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
               }`}
             >
               By Category
             </button>
             <button
               onClick={() => setChartMode('total')}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+              className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
                 chartMode === 'total'
-                  ? 'bg-indigo-600 text-white font-medium shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-medium shadow-xs'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
               }`}
             >
               Total
@@ -260,19 +236,19 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) =>
 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
             title={isCollapsed ? 'Expand panel' : 'Collapse panel'}
           >
-            {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
           </button>
 
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Close stats"
+              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+              title="Close panel"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -280,121 +256,133 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ resources, onClose }) =>
 
       {!isCollapsed && (
         <>
-          {/* Key Metric Highlights */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
-            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <span className="text-[11px] font-medium text-slate-400">Total (30 Days)</span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl font-semibold text-white tracking-tight">
+          {/* Minimalist Metric Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-3.5">
+            <div className="p-3 rounded-md bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                30-Day Ingest
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="font-mono text-xl font-semibold text-zinc-900 dark:text-zinc-100">
                   {totalLast30Days}
                 </span>
-                <span className="text-[10px] text-emerald-400 font-mono">items added</span>
+                <span className="font-mono text-[10px] text-zinc-400">items</span>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <span className="text-[11px] font-medium text-slate-400">Daily Average</span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl font-semibold text-white tracking-tight">
+            <div className="p-3 rounded-md bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Daily Velocity
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="font-mono text-xl font-semibold text-zinc-900 dark:text-zinc-100">
                   {averageDaily}
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono">res / day</span>
+                <span className="font-mono text-[10px] text-zinc-400">avg / day</span>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <span className="text-[11px] font-medium text-slate-400">Peak Activity</span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl font-semibold text-indigo-300 tracking-tight truncate">
-                  {peakDay.count > 0 ? `${peakDay.count} items` : '0'}
+            <div className="p-3 rounded-md bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Peak Velocity
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="font-mono text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+                  {peakDay.count}
                 </span>
-                <span className="text-[10px] text-slate-400 truncate">
-                  {peakDay.count > 0 ? `on ${peakDay.date}` : 'No activity'}
+                <span className="font-mono text-[10px] text-zinc-400 truncate">
+                  {peakDay.count > 0 ? `on ${peakDay.date}` : 'zero'}
                 </span>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <span className="text-[11px] font-medium text-slate-400">Top Format</span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl font-semibold text-white tracking-tight truncate">
+            <div className="p-3 rounded-md bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Primary Category
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="font-mono text-xl font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                   {mostActiveCategory.name}
                 </span>
-                <span className="text-[10px] text-slate-400 truncate font-mono">
+                <span className="font-mono text-[10px] text-zinc-400">
                   ({mostActiveCategory.count})
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Recharts Bar Chart Container */}
-          <div className="w-full h-64 pt-2">
+          {/* Bar Chart Container */}
+          <div className="w-full h-52 pt-1">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={trendData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
+              <BarChart data={trendData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
                 <CartesianGrid
-                  stroke="#334155"
-                  strokeDasharray="3 3"
+                  stroke="#71717a"
+                  strokeDasharray="2 2"
                   vertical={false}
-                  opacity={0.35}
+                  opacity={0.15}
                 />
                 <XAxis
                   dataKey="label"
-                  stroke="#64748b"
-                  fontSize={11}
+                  stroke="#71717a"
+                  fontSize={10}
+                  fontFamily="monospace"
                   tickLine={false}
-                  axisLine={{ stroke: '#334155' }}
+                  axisLine={{ stroke: '#52525b', opacity: 0.3 }}
                   interval={4}
                 />
                 <YAxis
-                  stroke="#64748b"
-                  fontSize={11}
+                  stroke="#71717a"
+                  fontSize={10}
+                  fontFamily="monospace"
                   tickLine={false}
-                  axisLine={{ stroke: '#334155' }}
+                  axisLine={{ stroke: '#52525b', opacity: 0.3 }}
                   allowDecimals={false}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
-                  wrapperStyle={{ paddingTop: '10px', fontSize: '11px', color: '#94a3b8' }}
-                  iconSize={8}
+                  wrapperStyle={{
+                    paddingTop: '8px',
+                    fontSize: '10px',
+                    fontFamily: 'monospace',
+                    color: '#a1a1aa',
+                  }}
+                  iconSize={7}
                 />
 
                 {chartMode === 'stacked' ? (
                   <>
                     <Bar
                       dataKey="Link"
-                      name="Web Links"
+                      name="Links"
                       stackId="trendStack"
-                      fill="#60a5fa"
+                      fill="#71717a"
                     />
                     <Bar
                       dataKey="Document"
-                      name="Documents"
+                      name="Docs"
                       stackId="trendStack"
-                      fill="#fbbf24"
+                      fill="#a1a1aa"
                     />
                     <Bar
                       dataKey="GitHub"
-                      name="GitHub Repos"
+                      name="GitHub"
                       stackId="trendStack"
-                      fill="#a78bfa"
+                      fill="#52525b"
                     />
                     <Bar
                       dataKey="Reel"
-                      name="Reels & Media"
+                      name="Reels"
                       stackId="trendStack"
-                      fill="#f472b6"
-                      radius={[4, 4, 0, 0]}
+                      fill="#d4d4d8"
+                      radius={[2, 2, 0, 0]}
                     />
                   </>
                 ) : (
                   <Bar
                     dataKey="total"
-                    name="Total Creations"
-                    fill="#6366f1"
-                    radius={[4, 4, 0, 0]}
+                    name="Creations"
+                    fill="#71717a"
+                    radius={[2, 2, 0, 0]}
                   />
                 )}
               </BarChart>

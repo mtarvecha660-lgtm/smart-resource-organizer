@@ -1,27 +1,55 @@
 {
   "entities": {
     "Resource": {
-      "collection": "resources",
-      "fields": {
-        "id": { "type": "string" },
-        "uid": { "type": "string" },
-        "title": { "type": "string" },
-        "url": { "type": "string" },
-        "category": { "type": "string" },
-        "description": { "type": "string" },
-        "tags": { "type": "array" },
-        "createdAt": { "type": "timestamp" }
-      }
+      "title": "Resource",
+      "description": "Saved resource item in vault",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Document ID" },
+        "uid": { "type": "string", "description": "User UID who owns this resource" },
+        "title": { "type": "string", "description": "Resource title", "maxLength": 300 },
+        "url": { "type": "string", "description": "Resource destination URL", "maxLength": 2048 },
+        "category": { "type": "string", "description": "Category: Link, Document, GitHub, or Reel", "enum": ["Link", "Document", "GitHub", "Reel"] },
+        "description": { "type": "string", "description": "Optional user notes or summary", "maxLength": 4000 },
+        "tags": { "type": "array", "description": "List of search tags" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "uid", "title", "url", "category"]
     },
     "User": {
-      "collection": "users",
-      "fields": {
-        "uid": { "type": "string" },
-        "email": { "type": "string" },
-        "displayName": { "type": "string" },
-        "photoURL": { "type": "string" },
-        "createdAt": { "type": "timestamp" }
+      "title": "User",
+      "description": "User profile document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "photoURL": { "type": "string", "description": "User avatar photo URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
+      },
+      "required": ["uid"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Health check probe",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "description": "Status message" }
       }
+    }
+  },
+  "firestore": {
+    "/test/{docId}": {
+      "schema": "TestConnection",
+      "description": "Health check probe endpoint"
+    },
+    "/resources/{resourceId}": {
+      "schema": "Resource",
+      "description": "User-saved resources"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile information"
     }
   }
 }

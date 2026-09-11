@@ -1,40 +1,39 @@
+// File: src/App.tsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { 
-  Search, 
-  Plus, 
-  Menu, 
-  Compass, 
-  Grid3X3, 
-  Columns, 
-  Globe, 
-  FileText, 
-  Github, 
-  Film, 
-  X, 
+import {
+  Search,
+  Plus,
+  Menu,
+  Grid3X3,
+  Columns,
+  Globe,
+  FileText,
+  Github,
+  Film,
+  X,
   AlertCircle,
   CheckCircle2,
-  SlidersHorizontal,
-  FolderOpen,
   BarChart2,
   Sun,
   Moon,
-  Send,
-  Zap
+  Zap,
+  ChevronDown,
 } from 'lucide-react';
 import { auth, signOut } from './lib/firebase';
-import { 
-  ResourceItem, 
-  ResourceCategory, 
-  ResourceFormData, 
-  CategoryFilter 
+import {
+  ResourceItem,
+  ResourceCategory,
+  ResourceFormData,
+  CategoryFilter,
 } from './types/resource';
-import { 
-  subscribeToUserResources, 
-  createResource, 
-  updateResource, 
+import {
+  subscribeToUserResources,
+  createResource,
+  updateResource,
   deleteResource,
-  seedInitialResourcesIfEmpty
+  seedInitialResourcesIfEmpty,
+  getUserResourcesPaginated,
 } from './services/resourceService';
 import { useDebounce } from './hooks/useDebounce';
 import { parseQuickSendInput } from './lib/quickSendParser';
@@ -53,13 +52,13 @@ import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { IncomingShareBanner } from './components/IncomingShareBanner';
 import { IncomingShareModal } from './components/IncomingShareModal';
-import { QuickShareScreen } from './components/QuickShareScreen';
-import { 
-  extractIncomingShareFromUrl, 
-  cleanShareUrlParams, 
-  storePendingShare, 
-  popPendingShare 
+import {
+  extractIncomingShareFromUrl,
+  cleanShareUrlParams,
+  storePendingShare,
+  popPendingShare,
 } from './lib/shareReceiver';
+import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export default function App() {
   return (
@@ -70,31 +69,39 @@ export default function App() {
 }
 
 function SmartResourceDashboard() {
-  // Authentication State
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Resources State (with optimistic updates)
+  // Resources state
   const [resources, setResources] = useState<ResourceItem[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
 
+  // Pagination state
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMorePages, setHasMorePages] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   // Filters & Search
   const [currentFilter, setCurrentFilter] = useState<CategoryFilter>('All');
   const [searchInput, setSearchInput] = useState('');
-  const debouncedSearch = useDebounce(searchInput.trim().toLowerCase(), 250);
+  const debouncedSearch = useDebounce(searchInput.trim().toLowerCase(), 200);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  // View Mode: 4-Column Section Board or Unified Responsive Card Grid
+  // View Mode: 4-Column Section Board or Responsive Card Grid
   const [viewMode, setViewMode] = useState<'board' | 'grid'>('board');
-  const [showStatsPanel, setShowStatsPanel] = useState(true);
+  const [showStatsPanel, setShowStatsPanel] = useState(false);
 
-  // Theme Mode: 'dark' | 'light' with persistence and root/body conditional CSS classes
+  // Theme Mode
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
       const saved = localStorage.getItem('sro_theme');
       if (saved === 'light' || saved === 'dark') return saved;
-      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      if (
+        typeof window !== 'undefined' &&
+        window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: light)').matches
+      ) {
         return 'light';
       }
     } catch {
@@ -124,7 +131,7 @@ function SmartResourceDashboard() {
     }
   }, [theme]);
 
-  // Modals & Drawers
+  // Modals & UI State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ResourceItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
@@ -135,41 +142,13 @@ function SmartResourceDashboard() {
   const [isSendHelpModalOpen, setIsSendHelpModalOpen] = useState(false);
   const [incomingSharedItem, setIncomingSharedItem] = useState<ResourceItem | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-
-  // Standalone Quick Share Mode (when opened from mobile share sheet to only show popup without entering the app)
-  const [isQuickShareMode, setIsQuickShareMode] = useState<boolean>(() => {
-    const incoming = extractIncomingShareFromUrl();
-    return !!(incoming && incoming.rawString);
-  });
   const [pendingShareModalData, setPendingShareModalData] = useState<{
     url: string;
     title: string;
     description: string;
     category: ResourceCategory;
     tags: string[];
-  } | null>(() => {
-    const incoming = extractIncomingShareFromUrl();
-    if (incoming && incoming.rawString) {
-      const parsed = parseQuickSendInput(incoming.rawString);
-      const url = incoming.url || parsed.formData.url;
-      const title =
-        incoming.title && incoming.title !== incoming.url
-          ? incoming.title
-          : parsed.formData.title;
-      let description = parsed.formData.description;
-      if (incoming.text && incoming.text !== incoming.url && incoming.text !== incoming.title) {
-        description = incoming.text.replace(url, '').trim() || incoming.text;
-      }
-      return {
-        url,
-        title,
-        description,
-        category: parsed.formData.category,
-        tags: parsed.formData.tags,
-      };
-    }
-    return null;
-  });
+  } | null>(null);
 
   // Toast feedback
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -178,17 +157,16 @@ function SmartResourceDashboard() {
     setToast({ message, type });
     setTimeout(() => {
       setToast((prev) => (prev?.message === message ? null : prev));
-    }, 3500);
+    }, 3000);
   }, []);
 
-  // Listen to Auth State
+  // Auth State Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
 
       if (currentUser) {
-        // Seed helpful starter items if database is freshly initialized
         try {
           await seedInitialResourcesIfEmpty(currentUser.uid);
         } catch (e) {
@@ -200,7 +178,7 @@ function SmartResourceDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Subscribe to Firestore Resources for current user
+  // Subscribe to bounded real-time window of resources
   useEffect(() => {
     if (!user) {
       setResources([]);
@@ -218,7 +196,7 @@ function SmartResourceDashboard() {
         setDataLoading(false);
       },
       (err) => {
-        setFirestoreError('Failed to synchronize with Firestore. Changes may be stored locally.');
+        setFirestoreError('Firestore sync warning: serving from local cache.');
         setDataLoading(false);
       }
     );
@@ -226,7 +204,28 @@ function SmartResourceDashboard() {
     return () => unsubscribe();
   }, [user]);
 
-  // Derived category counts
+  // Load more resources using cursor pagination
+  const handleLoadMore = async () => {
+    if (!user || isLoadingMore) return;
+    setIsLoadingMore(true);
+
+    try {
+      const result = await getUserResourcesPaginated(user.uid, 20, lastVisibleDoc, currentFilter);
+      setResources((prev) => {
+        const existingIds = new Set(prev.map((i) => i.id));
+        const newItems = result.items.filter((i) => !existingIds.has(i.id));
+        return [...prev, ...newItems];
+      });
+      setLastVisibleDoc(result.lastVisible);
+      setHasMorePages(result.hasMore);
+    } catch (err) {
+      console.error('Load more pagination error:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryFilter, number> = {
       All: resources.length,
@@ -254,20 +253,17 @@ function SmartResourceDashboard() {
     return Array.from(tagSet);
   }, [resources]);
 
-  // Filtered resources based on debounced search, category filter, and tag filter
+  // Filtered resources
   const filteredResources = useMemo(() => {
     return resources.filter((item) => {
-      // Category filter check
       if (currentFilter !== 'All' && item.category !== currentFilter) {
         return false;
       }
 
-      // Tag filter check
       if (selectedTag && !item.tags.includes(selectedTag)) {
         return false;
       }
 
-      // Debounced search query check (title, description, tags, url)
       if (debouncedSearch) {
         const titleMatch = item.title.toLowerCase().includes(debouncedSearch);
         const descMatch = item.description.toLowerCase().includes(debouncedSearch);
@@ -280,7 +276,7 @@ function SmartResourceDashboard() {
     });
   }, [resources, currentFilter, selectedTag, debouncedSearch]);
 
-  // Categorized sets for 4-column section board view
+  // 4-Column Board view grouping
   const categorizedSections = useMemo(() => {
     const categories: ResourceCategory[] = ['Link', 'Document', 'GitHub', 'Reel'];
     return categories.map((cat) => {
@@ -292,7 +288,7 @@ function SmartResourceDashboard() {
     });
   }, [filteredResources]);
 
-  // 1. Optimistic Add Resource
+  // Create Resource (Optimistic)
   const handleCreateResource = async (formData: ResourceFormData) => {
     if (!user) return;
     setIsSubmitting(true);
@@ -301,6 +297,7 @@ function SmartResourceDashboard() {
     const optimisticItem: ResourceItem = {
       id: tempId,
       uid: user.uid,
+      userId: user.uid,
       title: formData.title,
       url: formData.url,
       category: formData.category,
@@ -309,29 +306,27 @@ function SmartResourceDashboard() {
       createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
     };
 
-    // Optimistic state update
     setResources((prev) => [optimisticItem, ...prev]);
     setIsAddModalOpen(false);
 
     try {
       await createResource(user.uid, formData, tempId);
-      showToast('Resource added successfully!', 'success');
+      showToast('Saved to vault', 'success');
     } catch (err: unknown) {
       console.error('Create error:', err);
-      // Revert optimistic update on failure
       setResources((prev) => prev.filter((item) => item.id !== tempId));
-      const msg = err instanceof Error ? err.message : 'Failed to save to Firestore';
+      const msg = err instanceof Error ? err.message : 'Save failure';
       showToast(`Error: ${msg}`, 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Quick Send & Save Anything (URL, text note, dropped link, or clipboard, or mobile share)
+  // Quick Send
   const handleQuickSend = useCallback(
     async (rawText: string, isFromShare = false): Promise<boolean> => {
       if (!user) {
-        showToast('Please sign in to save resources', 'error');
+        showToast('Please sign in to save items', 'error');
         return false;
       }
       const trimmed = rawText.trim();
@@ -343,6 +338,7 @@ function SmartResourceDashboard() {
       const optimisticItem: ResourceItem = {
         id: tempId,
         uid: user.uid,
+        userId: user.uid,
         title: parsed.formData.title,
         url: parsed.formData.url,
         category: parsed.formData.category,
@@ -351,7 +347,6 @@ function SmartResourceDashboard() {
         createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
       };
 
-      // Optimistic UI state update
       setResources((prev) => [optimisticItem, ...prev]);
 
       if (isFromShare) {
@@ -362,20 +357,19 @@ function SmartResourceDashboard() {
         await createResource(user.uid, parsed.formData, tempId);
         showToast(
           isFromShare
-            ? `📱 Shared resource organized into ${parsed.formData.category}!`
-            : `⚡ Saved "${parsed.formData.title}" to ${parsed.formData.category}!`,
+            ? `Shared item saved as ${parsed.formData.category}`
+            : `Captured "${parsed.formData.title.slice(0, 30)}"`,
           'success'
         );
         return true;
       } catch (err: unknown) {
         console.error('Quick save error:', err);
-        // Revert optimistic update on failure
         setResources((prev) => prev.filter((item) => item.id !== tempId));
         if (isFromShare) {
           setIncomingSharedItem(null);
         }
-        const msg = err instanceof Error ? err.message : 'Failed to save to Firestore';
-        showToast(`Error saving: ${msg}`, 'error');
+        const msg = err instanceof Error ? err.message : 'Save failure';
+        showToast(`Error: ${msg}`, 'error');
         return false;
       } finally {
         setIsQuickSaving(false);
@@ -384,11 +378,10 @@ function SmartResourceDashboard() {
     [user, showToast]
   );
 
-  // Global Ctrl+V / Cmd+V paste-to-save listener
+  // Global Ctrl+V / Cmd+V paste listener
   useEffect(() => {
     const handleGlobalPaste = (e: ClipboardEvent) => {
       const target = e.target as HTMLElement | null;
-      // Do not intercept if user is typing inside an input, textarea, or contentEditable element
       if (
         target &&
         (target.tagName === 'INPUT' ||
@@ -408,11 +401,11 @@ function SmartResourceDashboard() {
     return () => window.removeEventListener('paste', handleGlobalPaste);
   }, [user, handleQuickSend]);
 
-  // Save handler for the Incoming Share Popup Modal
+  // Incoming Share Save Handler
   const handleSaveIncomingShare = useCallback(
     async (formData: ResourceFormData): Promise<boolean> => {
       if (!user) {
-        showToast('Please sign in to save resources', 'error');
+        showToast('Please sign in to save items', 'error');
         return false;
       }
 
@@ -421,6 +414,7 @@ function SmartResourceDashboard() {
       const optimisticItem: ResourceItem = {
         id: tempId,
         uid: user.uid,
+        userId: user.uid,
         title: formData.title,
         url: formData.url,
         category: formData.category,
@@ -429,19 +423,17 @@ function SmartResourceDashboard() {
         createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
       };
 
-      // Optimistic UI state update
       setResources((prev) => [optimisticItem, ...prev]);
 
       try {
         await createResource(user.uid, formData, tempId);
-        showToast(`📱 Saved "${formData.title}" to ${formData.category}!`, 'success');
+        showToast(`Saved "${formData.title.slice(0, 24)}"`, 'success');
         return true;
       } catch (err: unknown) {
         console.error('Share save error:', err);
-        // Revert optimistic update on failure
         setResources((prev) => prev.filter((item) => item.id !== tempId));
-        const msg = err instanceof Error ? err.message : 'Failed to save to Firestore';
-        showToast(`Error saving: ${msg}`, 'error');
+        const msg = err instanceof Error ? err.message : 'Failed to save';
+        showToast(`Error: ${msg}`, 'error');
         return false;
       } finally {
         setIsSubmitting(false);
@@ -450,12 +442,10 @@ function SmartResourceDashboard() {
     [user, showToast]
   );
 
-  // Detect incoming share from mobile share sheet, external bookmarklet, or pending share
+  // Handle incoming mobile share targets
   useEffect(() => {
-    // Wait until Firebase authentication state is determined
     if (authLoading) return;
 
-    // 1. Check if URL has incoming share parameters from Web Share Target or external link
     const incoming = extractIncomingShareFromUrl();
     if (incoming && incoming.rawString) {
       cleanShareUrlParams();
@@ -479,15 +469,12 @@ function SmartResourceDashboard() {
       };
 
       if (user) {
-        // Pop up the window where user can enter/edit title and description
         setPendingShareModalData(shareData);
         setIsShareModalOpen(true);
       } else {
-        // Preserve for when user signs in
         storePendingShare(incoming);
       }
     } else if (user) {
-      // 2. Check if a share was received on mobile before the user logged in
       const pending = popPendingShare();
       if (pending && pending.rawString) {
         const parsed = parseQuickSendInput(pending.rawString);
@@ -513,7 +500,7 @@ function SmartResourceDashboard() {
     }
   }, [user, authLoading]);
 
-  // 2. Optimistic Update Resource
+  // Update Resource
   const handleUpdateResource = async (formData: ResourceFormData) => {
     if (!user || !editingItem) return;
     setIsSubmitting(true);
@@ -521,7 +508,6 @@ function SmartResourceDashboard() {
     const targetId = editingItem.id;
     const previousItem = editingItem;
 
-    // Optimistic UI state update
     setResources((prev) =>
       prev.map((item) =>
         item.id === targetId
@@ -537,21 +523,20 @@ function SmartResourceDashboard() {
 
     try {
       await updateResource(targetId, formData);
-      showToast('Resource updated successfully!', 'success');
+      showToast('Resource updated', 'success');
     } catch (err: unknown) {
       console.error('Update error:', err);
-      // Revert on failure
       setResources((prev) =>
         prev.map((item) => (item.id === targetId ? previousItem : item))
       );
-      const msg = err instanceof Error ? err.message : 'Failed to update resource';
+      const msg = err instanceof Error ? err.message : 'Update failed';
       showToast(`Error: ${msg}`, 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // 3. Optimistic Delete Resource
+  // Delete Resource
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -560,16 +545,14 @@ function SmartResourceDashboard() {
     const itemToDelete = resources.find((r) => r.id === id);
     const itemIndex = resources.findIndex((r) => r.id === id);
 
-    // Optimistic removal from UI state
     setResources((prev) => prev.filter((item) => item.id !== id));
     setDeleteTarget(null);
 
     try {
       await deleteResource(id);
-      showToast(`"${title.slice(0, 24)}" deleted`, 'success');
+      showToast(`Deleted "${title.slice(0, 24)}"`, 'success');
     } catch (err: unknown) {
       console.error('Delete error:', err);
-      // Revert deletion on failure
       if (itemToDelete && itemIndex !== -1) {
         setResources((prev) => {
           const restored = [...prev];
@@ -577,47 +560,47 @@ function SmartResourceDashboard() {
           return restored;
         });
       }
-      const msg = err instanceof Error ? err.message : 'Failed to delete resource';
+      const msg = err instanceof Error ? err.message : 'Delete failed';
       showToast(`Error: ${msg}`, 'error');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Sign out handler
+  // Sign out
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      showToast('Signed out safely', 'success');
+      showToast('Signed out', 'success');
     } catch (err) {
       console.error('Sign out error:', err);
     }
   };
 
-  // Initial Authentication check state
+  // Auth Loading Screen
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400">
-        <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
-        <p className="text-sm font-medium text-slate-300">Loading Smart Resource Vault...</p>
+      <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col items-center justify-center text-zinc-500 font-mono text-xs">
+        <div className="w-5 h-5 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-zinc-100 rounded-full animate-spin mb-3" />
+        <span>Authenticating session...</span>
       </div>
     );
   }
 
-  // Strictly restrict dashboard view to logged-in users; redirect to landing page
+  // If unauthenticated, present clean Landing Page
   if (!user) {
     return (
-      <LandingPage 
-        onSignInSuccess={() => {}} 
-        theme={theme} 
-        onToggleTheme={(t) => setTheme(t)} 
+      <LandingPage
+        onSignInSuccess={() => {}}
+        theme={theme}
+        onToggleTheme={(t) => setTheme(t)}
       />
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col lg:flex-row antialiased selection:bg-indigo-500 selection:text-white">
-      {/* Sidebar Navigation */}
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col lg:flex-row antialiased font-sans">
+      {/* Sidebar */}
       <Sidebar
         currentFilter={currentFilter}
         onSelectFilter={(f) => {
@@ -644,175 +627,155 @@ function SmartResourceDashboard() {
         onOpenSendHelp={() => setIsSendHelpModalOpen(true)}
       />
 
-      {/* Main Content Area (offset by sidebar width on desktop) */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        {/* Top App Header */}
-        <header className="sticky top-0 z-30 h-16 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between gap-3">
-          {/* Mobile menu toggle & Title */}
-          <div className="flex items-center gap-3">
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-60">
+        {/* Header */}
+        <header className="sticky top-0 z-30 h-14 bg-white/95 dark:bg-zinc-950/95 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="lg:hidden p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
               aria-label="Open sidebar"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4" />
             </button>
 
-            <div className="hidden sm:flex items-center gap-2 text-sm font-semibold text-white">
-              <Compass className="w-4 h-4 text-indigo-400" />
-              <span>Dashboard</span>
-              <span className="text-slate-600">/</span>
-              <span className="text-slate-400 font-normal">
-                {currentFilter === 'All' ? 'All Resources' : currentFilter}
-              </span>
+            <div className="hidden sm:flex items-center gap-1.5 font-mono text-xs">
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">Vault</span>
+              <span className="text-zinc-400">/</span>
+              <span className="text-zinc-500">{currentFilter}</span>
             </div>
           </div>
 
-          {/* Search Bar & Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-md justify-end sm:justify-start">
+          {/* Search Input */}
+          <div className="flex items-center gap-2 flex-1 max-w-sm">
             <div className="relative w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 id="global-search-input"
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search by title, description, or #tag..."
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                placeholder="Search title, url, or #tag..."
+                className="w-full pl-8 pr-7 py-1 rounded bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
               />
               {searchInput && (
                 <button
                   onClick={() => setSearchInput('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-0.5 cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
           </div>
 
           {/* Right Header Controls */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* View Mode Toggle */}
-            <div className="hidden md:flex items-center bg-slate-950/60 p-0.5 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* View Mode */}
+            <div className="hidden md:flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
               <button
                 id="btn-view-board"
                 onClick={() => setViewMode('board')}
-                title="4-Column Section Board"
-                className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                title="Board View"
+                className={`p-1 rounded text-xs cursor-pointer ${
                   viewMode === 'board'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                 }`}
               >
-                <Columns className="w-4 h-4" />
+                <Columns className="w-3.5 h-3.5" />
               </button>
               <button
                 id="btn-view-grid"
                 onClick={() => setViewMode('grid')}
-                title="Unified Card Grid"
-                className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                title="Grid View"
+                className={`p-1 rounded text-xs cursor-pointer ${
                   viewMode === 'grid'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                 }`}
               >
-                <Grid3X3 className="w-4 h-4" />
+                <Grid3X3 className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Trends Analytics Toggle Button */}
+            {/* Metrics Toggle */}
             <button
               id="header-toggle-stats-btn"
               onClick={() => setShowStatsPanel(!showStatsPanel)}
-              title={showStatsPanel ? 'Hide 30-Day Trends' : 'Show 30-Day Trends'}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+              title={showStatsPanel ? 'Hide Metrics' : 'Show Metrics'}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-mono border transition-colors cursor-pointer ${
                 showStatsPanel
-                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                  : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200'
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100'
+                  : 'bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
               }`}
             >
               <BarChart2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Trends</span>
+              <span className="hidden sm:inline">Metrics</span>
             </button>
 
-            {/* Quick Theme Toggle in Header */}
-            <button
-              id="header-theme-toggle-btn"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
-              className="p-1.5 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-indigo-400" />
-              )}
-            </button>
-
-            {/* Quick Send to Vault Button */}
+            {/* Send to Vault guide */}
             <button
               id="header-send-to-vault-btn"
               onClick={() => setIsSendHelpModalOpen(true)}
-              title="Ways to send anything to your vault (Drag & drop, paste, bookmarklet)"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-800 bg-slate-950/60 text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/30 transition-colors cursor-pointer text-xs"
+              title="Quick send instructions"
+              className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer font-mono text-xs"
             >
               <Zap className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Send to Vault</span>
+              <span>Capture Guide</span>
             </button>
 
-            {/* Install PWA / Add to Home Screen Button */}
             <PWAInstallButton variant="header" />
 
-            {/* Quick Add Button */}
+            {/* Add Resource button */}
             <button
               id="header-add-btn"
               onClick={() => {
                 setEditingItem(null);
                 setIsAddModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Add</span>
+              <span>Add</span>
             </button>
           </div>
         </header>
 
-        {/* Firestore error banner if applicable */}
+        {/* Error notification banner */}
         {firestoreError && (
-          <div className="mx-4 sm:mx-6 mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
+          <div className="mx-4 sm:mx-6 mt-3 p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 flex items-center justify-between font-mono">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               <span>{firestoreError}</span>
             </div>
             <button
               onClick={() => setFirestoreError(null)}
-              className="text-amber-400 hover:text-white text-xs font-medium"
+              className="text-zinc-900 dark:text-zinc-100 hover:underline text-[11px]"
             >
               Dismiss
             </button>
           </div>
         )}
 
-        {/* Active Filters Bar (if search or tag is active) */}
+        {/* Filter Indicators */}
         {(debouncedSearch || selectedTag) && (
-          <div className="px-4 sm:px-6 pt-4 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-slate-400 font-medium">Active filters:</span>
+          <div className="px-4 sm:px-6 pt-3 flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+            <span className="text-zinc-400">Filters:</span>
             {debouncedSearch && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600/20 text-indigo-300 border border-indigo-500/30">
-                <span>Query: "{debouncedSearch}"</span>
-                <button onClick={() => setSearchInput('')} className="hover:text-white cursor-pointer">
-                  <X className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200">
+                <span>"{debouncedSearch}"</span>
+                <button onClick={() => setSearchInput('')} className="cursor-pointer">
+                  &times;
                 </button>
               </span>
             )}
             {selectedTag && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600/20 text-indigo-300 border border-indigo-500/30">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200">
                 <span>#{selectedTag}</span>
-                <button onClick={() => setSelectedTag(null)} className="hover:text-white cursor-pointer">
-                  <X className="w-3 h-3" />
+                <button onClick={() => setSelectedTag(null)} className="cursor-pointer">
+                  &times;
                 </button>
               </span>
             )}
@@ -821,16 +784,15 @@ function SmartResourceDashboard() {
                 setSearchInput('');
                 setSelectedTag(null);
               }}
-              className="text-slate-400 hover:text-white underline ml-1 cursor-pointer"
+              className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 underline ml-1 cursor-pointer"
             >
-              Clear all
+              Reset
             </button>
           </div>
         )}
 
-        {/* Main Panel Content */}
+        {/* Content Area */}
         <main className="flex-1 p-4 sm:p-6">
-          {/* Incoming Mobile Share Banner (Auto-detects and confirms shared items from Android) */}
           {incomingSharedItem && (
             <IncomingShareBanner
               item={incomingSharedItem}
@@ -843,14 +805,14 @@ function SmartResourceDashboard() {
             />
           )}
 
-          {/* Quick Send & Save Bar (Auto-extracts URLs, tags, categorizes & saves) */}
+          {/* Quick Send Bar */}
           <QuickSendBar
             onQuickSave={handleQuickSend}
             onOpenHelp={() => setIsSendHelpModalOpen(true)}
             isSaving={isQuickSaving}
           />
 
-          {/* 30-Day Resource Creation Trends Stats Panel */}
+          {/* Stats Panel */}
           {!dataLoading && showStatsPanel && (
             <StatsPanel
               resources={resources}
@@ -859,13 +821,12 @@ function SmartResourceDashboard() {
           )}
 
           {dataLoading ? (
-            <div className="py-20 flex flex-col items-center justify-center text-slate-400">
-              <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-3" />
-              <p className="text-xs text-slate-400">Syncing with Firestore...</p>
+            <div className="py-16 flex flex-col items-center justify-center text-zinc-400 font-mono text-xs">
+              <div className="w-5 h-5 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-zinc-100 rounded-full animate-spin mb-2" />
+              <span>Loading cache...</span>
             </div>
           ) : filteredResources.length === 0 ? (
-            // Search / filter empty state
-            <div className="max-w-xl mx-auto py-12">
+            <div className="max-w-md mx-auto py-10">
               <EmptyState
                 category={
                   debouncedSearch || selectedTag
@@ -880,45 +841,29 @@ function SmartResourceDashboard() {
                   setSelectedTag(null);
                   setCurrentFilter('All');
                 }}
-                onAddClick={(cat) => {
+                onAddClick={() => {
                   setEditingItem(null);
                   setIsAddModalOpen(true);
                 }}
               />
             </div>
           ) : currentFilter === 'All' && viewMode === 'board' ? (
-            /* 4-COLUMN RESPONSIVE SECTION GRID */
+            /* 4-Column Board */
             <div
               id="sections-board-grid"
-              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start"
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"
             >
               {categorizedSections.map(({ category, items }) => {
                 const getSectionHeader = (cat: ResourceCategory) => {
                   switch (cat) {
                     case 'Link':
-                      return {
-                        title: 'Web Links',
-                        icon: <Globe className="w-4 h-4 text-blue-400" />,
-                        badge: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-                      };
+                      return { title: 'Web Links', icon: <Globe className="w-3.5 h-3.5" /> };
                     case 'Document':
-                      return {
-                        title: 'Documents',
-                        icon: <FileText className="w-4 h-4 text-amber-400" />,
-                        badge: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-                      };
+                      return { title: 'Documents', icon: <FileText className="w-3.5 h-3.5" /> };
                     case 'GitHub':
-                      return {
-                        title: 'GitHub Repos',
-                        icon: <Github className="w-4 h-4 text-violet-400" />,
-                        badge: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
-                      };
+                      return { title: 'GitHub Repos', icon: <Github className="w-3.5 h-3.5" /> };
                     case 'Reel':
-                      return {
-                        title: 'Reels & Media',
-                        icon: <Film className="w-4 h-4 text-pink-400" />,
-                        badge: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
-                      };
+                      return { title: 'Reels & Media', icon: <Film className="w-3.5 h-3.5" /> };
                   }
                 };
 
@@ -928,28 +873,22 @@ function SmartResourceDashboard() {
                   <section
                     key={category}
                     id={`section-column-${category.toLowerCase()}`}
-                    className="flex flex-col gap-3 min-w-0 bg-slate-900/30 rounded-2xl p-3 border border-slate-800/60"
+                    className="flex flex-col gap-2.5 min-w-0 bg-zinc-50 dark:bg-zinc-950/40 rounded-lg p-2.5 border border-zinc-200 dark:border-zinc-800"
                   >
-                    {/* Section Header */}
-                    <div className="flex items-center justify-between px-1 py-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-                          {header.icon}
-                        </div>
-                        <h2 className="text-sm font-semibold text-white truncate">
+                    <div className="flex items-center justify-between px-1 py-0.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-zinc-500">{header.icon}</span>
+                        <h2 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                           {header.title}
                         </h2>
                       </div>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-mono font-medium border ${header.badge}`}
-                      >
+                      <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500 bg-white dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800">
                         {items.length}
                       </span>
                     </div>
 
-                    {/* Section Items or Category Empty State */}
                     {items.length === 0 ? (
-                      <div className="py-4">
+                      <div className="py-2">
                         <EmptyState
                           category={category}
                           onAddClick={() => {
@@ -959,7 +898,7 @@ function SmartResourceDashboard() {
                         />
                       </div>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {items.map((item) => (
                           <ResourceCard
                             key={item.id}
@@ -980,22 +919,17 @@ function SmartResourceDashboard() {
               })}
             </div>
           ) : (
-            /* UNIFIED 4-COLUMN RESPONSIVE CARD GRID VIEW */
+            /* Responsive Grid View */
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-semibold text-white">
-                    {currentFilter === 'All' ? 'All Items' : `${currentFilter} Resources`}
-                  </h2>
-                  <span className="text-xs text-slate-400 font-mono">
-                    ({filteredResources.length} items)
-                  </span>
-                </div>
+              <div className="flex items-center justify-between mb-3 font-mono text-xs text-zinc-500">
+                <span>
+                  Showing {filteredResources.length} {currentFilter} items
+                </span>
               </div>
 
               <div
                 id="unified-resource-grid"
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5"
               >
                 {filteredResources.map((item) => (
                   <ResourceCard
@@ -1011,12 +945,26 @@ function SmartResourceDashboard() {
                   />
                 ))}
               </div>
+
+              {/* Cursor-based pagination trigger */}
+              {hasMorePages && (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={isLoadingMore}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700 font-mono text-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <ChevronDown className={`w-3.5 h-3.5 ${isLoadingMore ? 'animate-bounce' : ''}`} />
+                    <span>{isLoadingMore ? 'Fetching...' : 'Load Next Page'}</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </main>
       </div>
 
-      {/* Add / Edit Resource Modal */}
+      {/* Modals */}
       <ResourceModal
         isOpen={isAddModalOpen}
         onClose={() => {
@@ -1028,7 +976,6 @@ function SmartResourceDashboard() {
         loading={isSubmitting}
       />
 
-      {/* Incoming Share Review & Edit Window */}
       <IncomingShareModal
         isOpen={isShareModalOpen}
         onClose={() => {
@@ -1040,7 +987,6 @@ function SmartResourceDashboard() {
         loading={isSubmitting}
       />
 
-      {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
@@ -1049,33 +995,26 @@ function SmartResourceDashboard() {
         loading={isDeleting}
       />
 
-      {/* Global Drag-and-Drop Vault Target */}
       <GlobalDropZone onDropSave={handleQuickSend} />
 
-      {/* Send to Vault Ways Modal */}
       <SendToVaultModal
         isOpen={isSendHelpModalOpen}
         onClose={() => setIsSendHelpModalOpen(false)}
         appOrigin={window.location.origin}
       />
 
-      {/* Offline Status Warning Indicator */}
       <OfflineIndicator />
 
-      {/* Floating Toast Notification */}
+      {/* Toast */}
       {toast && (
         <div
           id="toast-notification"
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-2xl text-xs font-medium border backdrop-blur-md transition-all animate-in fade-in slide-in-from-bottom-3 ${
-            toast.type === 'error'
-              ? 'bg-rose-950/90 border-rose-800 text-rose-200'
-              : 'bg-emerald-950/90 border-emerald-800 text-emerald-200'
-          }`}
+          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-mono text-[11px] border border-zinc-700 dark:border-zinc-300 shadow-lg animate-in fade-in"
         >
           {toast.type === 'error' ? (
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <AlertCircle className="w-3.5 h-3.5 text-red-400 dark:text-red-600 shrink-0" />
           ) : (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-700 shrink-0" />
           )}
           <span>{toast.message}</span>
         </div>

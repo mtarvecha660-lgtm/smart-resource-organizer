@@ -5,6 +5,7 @@ export type ResourceCategory = 'Link' | 'Document' | 'GitHub' | 'Reel';
 export interface ResourceItem {
   id: string;
   uid: string;
+  userId?: string;
   title: string;
   url: string;
   category: ResourceCategory;

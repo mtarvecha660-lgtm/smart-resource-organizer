@@ -1,19 +1,30 @@
+// File: src/components/OfflineIndicator.tsx
 import React from 'react';
-import { WifiOff } from 'lucide-react';
-import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { WifiOff, RefreshCw } from 'lucide-react';
+import { useOnlineStatus, useSyncStatus } from '../hooks/useOnlineStatus';
 
 export const OfflineIndicator: React.FC = () => {
   const isOnline = useOnlineStatus();
+  const isSyncing = useSyncStatus();
 
-  if (isOnline) return null;
+  if (isOnline && !isSyncing) return null;
 
   return (
-    <div 
+    <div
       id="pwa-offline-indicator"
-      className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-xl bg-amber-500/95 text-slate-950 px-3.5 py-2 text-xs font-semibold shadow-xl backdrop-blur-sm border border-amber-400/50 animate-bounce"
+      className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1.5 font-mono text-[11px] border border-zinc-700 dark:border-zinc-300 shadow-md"
     >
-      <WifiOff className="w-4 h-4" />
-      <span>Offline Mode — Cached data is being used.</span>
+      {!isOnline ? (
+        <>
+          <WifiOff className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
+          <span>Offline &bull; Serving from Local Cache</span>
+        </>
+      ) : isSyncing ? (
+        <>
+          <RefreshCw className="w-3.5 h-3.5 animate-spin text-zinc-400 dark:text-zinc-600" />
+          <span>Syncing to Firestore...</span>
+        </>
+      ) : null}
     </div>
   );
 };

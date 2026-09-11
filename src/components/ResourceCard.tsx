@@ -1,18 +1,19 @@
+// File: src/components/ResourceCard.tsx
 import React, { useState } from 'react';
-import { 
-  Globe, 
-  FileText, 
-  Github, 
-  Film, 
-  ExternalLink, 
-  MoreVertical, 
-  Edit3, 
-  Trash2, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  Globe,
+  FileText,
+  Github,
+  Film,
+  ExternalLink,
+  MoreVertical,
+  Edit3,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
   Sparkles,
   Check,
-  Copy
+  Copy,
 } from 'lucide-react';
 import { ResourceItem, ResourceCategory } from '../types/resource';
 import { summarizeDocument, DocumentSummaryResult } from '../services/geminiService';
@@ -40,7 +41,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const [showAiSummary, setShowAiSummary] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
 
-  // Host extraction for favicon & display
   let hostname = '';
   try {
     hostname = new URL(item.url).hostname.replace(/^www\./, '');
@@ -48,37 +48,19 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     hostname = item.url;
   }
 
-  const getCategoryConfig = (category: ResourceCategory) => {
+  const getCategoryIcon = (category: ResourceCategory) => {
     switch (category) {
       case 'GitHub':
-        return {
-          icon: <Github className="w-4 h-4 text-violet-400" />,
-          badgeBg: 'bg-violet-500/10 text-violet-300 border-violet-500/20',
-          hoverBorder: 'hover:border-violet-500/40',
-        };
+        return <Github className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300" />;
       case 'Reel':
-        return {
-          icon: <Film className="w-4 h-4 text-pink-400" />,
-          badgeBg: 'bg-pink-500/10 text-pink-300 border-pink-500/20',
-          hoverBorder: 'hover:border-pink-500/40',
-        };
+        return <Film className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300" />;
       case 'Document':
-        return {
-          icon: <FileText className="w-4 h-4 text-amber-400" />,
-          badgeBg: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-          hoverBorder: 'hover:border-amber-500/40',
-        };
+        return <FileText className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300" />;
       case 'Link':
       default:
-        return {
-          icon: <Globe className="w-4 h-4 text-blue-400" />,
-          badgeBg: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
-          hoverBorder: 'hover:border-blue-500/40',
-        };
+        return <Globe className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300" />;
     }
   };
-
-  const categoryConfig = getCategoryConfig(item.category);
 
   const handleCopyLink = async () => {
     try {
@@ -111,63 +93,66 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const formattedDate = (() => {
     if (!item.createdAt) return '';
     try {
-      const date = 'toDate' in item.createdAt && typeof item.createdAt.toDate === 'function'
-        ? item.createdAt.toDate()
-        : 'seconds' in item.createdAt
-        ? new Date((item.createdAt as { seconds: number }).seconds * 1000)
-        : null;
+      const date =
+        'toDate' in item.createdAt && typeof item.createdAt.toDate === 'function'
+          ? item.createdAt.toDate()
+          : 'seconds' in item.createdAt
+          ? new Date((item.createdAt as { seconds: number }).seconds * 1000)
+          : null;
       if (!date) return '';
-      return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date);
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(date);
     } catch {
       return '';
     }
   })();
 
-  const descriptionNeedsExpansion = (item.description || '').length > 110;
+  const isLongDescription = (item.description || '').length > 120;
 
   return (
     <article
       id={`resource-card-${item.id}`}
-      className={`group relative bg-slate-900/90 border border-slate-800 rounded-2xl p-4 transition-all duration-200 shadow-sm hover:shadow-lg flex flex-col justify-between ${categoryConfig.hoverBorder}`}
+      className="group relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-3.5 sm:p-4 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex flex-col justify-between"
     >
       <div>
-        {/* Top bar: Favicon, Category Pill, Action Menu */}
-        <div className="flex items-start justify-between gap-2 mb-3">
+        {/* Header: Category Badge, Hostname & Action Menu */}
+        <div className="flex items-center justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-2 min-w-0">
-            {/* Favicon or fallback category icon */}
-            <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center shrink-0 overflow-hidden">
-              {!faviconError && hostname ? (
+            <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center shrink-0 overflow-hidden">
+              {!faviconError && hostname && !hostname.startsWith('smart-resource.local') ? (
                 <img
-                  src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
+                  src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=32`}
                   alt=""
-                  className="w-4 h-4 object-contain"
+                  className="w-3.5 h-3.5 object-contain"
                   onError={() => setFaviconError(true)}
                   loading="lazy"
                 />
               ) : (
-                categoryConfig.icon
+                getCategoryIcon(item.category)
               )}
             </div>
 
-            <div className="min-w-0">
-              <span
-                className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded-md border ${categoryConfig.badgeBg}`}
-              >
-                {item.category}
-              </span>
-            </div>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700/60 shrink-0">
+              {item.category}
+            </span>
+
+            <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 truncate max-w-[140px] sm:max-w-[200px]">
+              {hostname}
+            </span>
           </div>
 
-          {/* Action Menu button & dropdown */}
           <div className="relative shrink-0">
             <button
               id={`menu-trigger-${item.id}`}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Actions"
-              aria-label="More actions"
+              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              title="More options"
+              aria-label="More options"
             >
-              <MoreVertical className="w-4 h-4" />
+              <MoreVertical className="w-3.5 h-3.5" />
             </button>
 
             {isMenuOpen && (
@@ -178,29 +163,29 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                 />
                 <div
                   id={`action-menu-${item.id}`}
-                  className="absolute right-0 top-8 z-30 w-44 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-1 text-xs text-slate-200"
+                  className="absolute right-0 top-7 z-30 w-40 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-lg py-1 text-xs text-zinc-700 dark:text-zinc-300"
                 >
                   <a
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 hover:bg-slate-700/60 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                   >
-                    <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Open in new tab</span>
+                    <ExternalLink className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                    <span>Open in tab</span>
                   </a>
 
                   <button
                     onClick={handleCopyLink}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-700/60 transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
                   >
                     {copied ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <Check className="w-3 h-3 text-zinc-900 dark:text-zinc-100" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <Copy className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
                     )}
-                    <span>{copied ? 'Copied URL!' : 'Copy URL'}</span>
+                    <span>{copied ? 'Copied' : 'Copy URL'}</span>
                   </button>
 
                   <button
@@ -209,13 +194,13 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                       setIsMenuOpen(false);
                       onEdit(item);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-700/60 transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Edit item</span>
+                    <Edit3 className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                    <span>Edit</span>
                   </button>
 
-                  <div className="border-t border-slate-700/60 my-1" />
+                  <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
 
                   <button
                     id={`action-delete-${item.id}`}
@@ -223,9 +208,9 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                       setIsMenuOpen(false);
                       onDelete(item.id, item.title);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-rose-500/20 text-rose-300 transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-red-600 dark:text-red-400 transition-colors text-left cursor-pointer"
                   >
-                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <Trash2 className="w-3 h-3 text-red-600 dark:text-red-400" />
                     <span>Delete</span>
                   </button>
                 </div>
@@ -237,39 +222,34 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         {/* Title */}
         <h3
           title={item.title}
-          className="text-sm font-semibold text-slate-100 line-clamp-2 leading-snug group-hover:text-white transition-colors"
+          className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2"
         >
           {item.title}
         </h3>
 
-        {/* Domain subline */}
-        <p className="text-[11px] text-slate-400 font-mono mt-1 truncate">
-          {hostname}
-        </p>
-
-        {/* Description (Expandable) */}
+        {/* Description */}
         {item.description && (
-          <div className="mt-2.5">
+          <div className="mt-2">
             <p
-              className={`text-xs text-slate-300 leading-relaxed ${
-                !isExpanded && descriptionNeedsExpansion ? 'line-clamp-2' : ''
+              className={`text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-sans ${
+                !isExpanded && isLongDescription ? 'line-clamp-2' : ''
               }`}
             >
               {item.description}
             </p>
-            {descriptionNeedsExpansion && (
+            {isLongDescription && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                className="mt-1 inline-flex items-center gap-1 font-mono text-[10px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
               >
                 {isExpanded ? (
                   <>
-                    <span>Show less</span>
+                    <span>Collapse</span>
                     <ChevronUp className="w-3 h-3" />
                   </>
                 ) : (
                   <>
-                    <span>Show more</span>
+                    <span>Expand</span>
                     <ChevronDown className="w-3 h-3" />
                   </>
                 )}
@@ -278,46 +258,50 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
           </div>
         )}
 
-        {/* AI Summary Preview if generated or Document */}
-        {item.category === 'Document' && (
-          <div className="mt-3 pt-2 border-t border-slate-800/80">
+        {/* AI Quick Summary Trigger (Document or explicit request) */}
+        {(item.category === 'Document' || (item.description && item.description.length > 80)) && (
+          <div className="mt-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
             <button
               onClick={handleGenerateSummary}
               disabled={isSummarizing}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-300/90 hover:text-amber-200 transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <Sparkles className={`w-3 h-3 text-amber-400 ${isSummarizing ? 'animate-spin' : ''}`} />
-              <span>{isSummarizing ? 'Analyzing document...' : showAiSummary ? 'Hide AI Summary' : 'AI Quick Summary'}</span>
+              <Sparkles className={`w-3 h-3 ${isSummarizing ? 'animate-spin' : ''}`} />
+              <span>
+                {isSummarizing ? 'Analyzing...' : showAiSummary ? 'Hide Summary' : 'AI Summary'}
+              </span>
             </button>
 
             {showAiSummary && aiSummary && (
-              <div className="mt-2 p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/90 space-y-1.5">
-                <p className="leading-relaxed font-normal">{aiSummary.summary}</p>
-                <ul className="list-disc list-inside text-amber-300/80 space-y-0.5">
-                  {aiSummary.keyPoints.map((pt, i) => (
-                    <li key={i}>{pt}</li>
-                  ))}
-                </ul>
+              <div className="mt-2 p-2.5 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-700 dark:text-zinc-300 space-y-2">
+                <p className="leading-relaxed font-sans">{aiSummary.summary}</p>
+                {aiSummary.keyPoints.length > 0 && (
+                  <ul className="list-disc list-inside text-zinc-600 dark:text-zinc-400 text-[11px] space-y-0.5">
+                    {aiSummary.keyPoints.map((pt, i) => (
+                      <li key={i}>{pt}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Card Footer: Clickable Tags & Date / Open Link */}
-      <div className="mt-4 pt-3 border-t border-slate-800/80">
+      {/* Footer: Monospaced Tags & Date / External Link */}
+      <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80">
         {item.tags && item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2.5">
+          <div className="flex flex-wrap gap-1 mb-2">
             {item.tags.map((tag) => {
               const isSelected = activeTag === tag;
               return (
                 <button
                   key={tag}
                   onClick={() => onTagClick(tag)}
-                  className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+                  className={`font-mono text-[10px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/50'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700/70 border border-slate-700/50'
+                      ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100'
+                      : 'bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
                   }`}
                 >
                   #{tag}
@@ -327,16 +311,16 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
           </div>
         )}
 
-        <div className="flex items-center justify-between text-[11px] text-slate-400">
+        <div className="flex items-center justify-between font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
           <span>{formattedDate}</span>
           <a
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-slate-400 hover:text-indigo-300 font-medium transition-colors"
+            className="inline-flex items-center gap-1 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
           >
             <span>Visit</span>
-            <ExternalLink className="w-3 h-3" />
+            <ExternalLink className="w-2.5 h-2.5" />
           </a>
         </div>
       </div>

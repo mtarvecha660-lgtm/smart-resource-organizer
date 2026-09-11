@@ -1,20 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  Send, 
-  Sparkles, 
-  Clipboard, 
-  HelpCircle, 
-  Loader2, 
-  Check, 
-  ExternalLink,
-  Globe,
-  FileText,
-  Github,
-  Film,
-  Zap
+// File: src/components/QuickSendBar.tsx
+import React, { useState, useMemo, useRef } from 'react';
+import {
+  Send,
+  Clipboard,
+  HelpCircle,
+  Loader2,
+  Check,
+  Zap,
 } from 'lucide-react';
 import { parseQuickSendInput } from '../lib/quickSendParser';
-import { ResourceCategory } from '../types/resource';
 
 interface QuickSendBarProps {
   onQuickSave: (text: string) => Promise<boolean>;
@@ -31,7 +25,7 @@ export const QuickSendBar: React.FC<QuickSendBarProps> = ({
   const [justSaved, setJustSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Live parse preview as the user types or pastes
+  // Live parse preview as user inputs text
   const livePreview = useMemo(() => {
     if (!inputVal.trim()) return null;
     try {
@@ -50,7 +44,7 @@ export const QuickSendBar: React.FC<QuickSendBarProps> = ({
     if (success) {
       setInputVal('');
       setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 2500);
+      setTimeout(() => setJustSaved(false), 2000);
     }
   };
 
@@ -64,149 +58,100 @@ export const QuickSendBar: React.FC<QuickSendBarProps> = ({
         }
       }
     } catch (err) {
-      console.warn('Clipboard read permission was denied or unavailable:', err);
-    }
-  };
-
-  const getCategoryBadge = (category: ResourceCategory) => {
-    switch (category) {
-      case 'GitHub':
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30">
-            <Github className="w-3 h-3" /> GitHub
-          </span>
-        );
-      case 'Reel':
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-pink-500/15 text-pink-300 border border-pink-500/30">
-            <Film className="w-3 h-3" /> Reel
-          </span>
-        );
-      case 'Document':
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-            <FileText className="w-3 h-3" /> Document
-          </span>
-        );
-      case 'Link':
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
-            <Globe className="w-3 h-3" /> Web Link
-          </span>
-        );
+      console.warn('Clipboard read access note:', err);
     }
   };
 
   return (
-    <div className="w-full mb-6">
+    <div className="w-full mb-4">
       <form
         onSubmit={handleSubmit}
-        className="relative group bg-slate-900/90 border border-slate-800 focus-within:border-indigo-500/60 rounded-2xl p-2 sm:p-2.5 shadow-md transition-all backdrop-blur-sm"
+        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 transition-colors focus-within:border-zinc-400 dark:focus-within:border-zinc-600"
       >
         <div className="flex items-center gap-2">
-          {/* Left Icon */}
-          <div className="w-9 h-9 rounded-xl bg-indigo-600/15 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
-            <Zap className="w-4 h-4" />
+          <div className="w-7 h-7 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shrink-0">
+            <Zap className="w-3.5 h-3.5" />
           </div>
 
-          {/* Quick Input Field */}
-          <div className="flex-1 min-w-0 relative">
+          <div className="flex-1 min-w-0">
             <input
               ref={inputRef}
               id="quick-send-input"
               type="text"
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
-              placeholder="Send anything to save: paste a URL, drop a link, or send a note..."
-              className="w-full bg-transparent text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none pr-2 py-1"
+              placeholder="Paste URL, drop link, or enter quick note..."
+              className="w-full bg-transparent text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none"
               disabled={isSaving}
             />
           </div>
 
-          {/* Right Action Controls */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Live Category Detection Badge */}
             {livePreview && (
-              <div className="hidden sm:flex items-center">
-                {getCategoryBadge(livePreview.formData.category)}
-              </div>
+              <span className="hidden sm:inline-block font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700/60 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                {livePreview.formData.category}
+              </span>
             )}
 
-            {/* Paste from Clipboard Button */}
             {!inputVal && (
               <button
                 type="button"
                 id="btn-quick-paste"
                 onClick={handlePasteFromClipboard}
                 title="Paste from clipboard"
-                className="hidden md:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs text-slate-400 hover:text-slate-200 bg-slate-950/60 hover:bg-slate-800 border border-slate-800 transition-colors cursor-pointer"
+                className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-colors cursor-pointer"
               >
                 <Clipboard className="w-3 h-3" />
-                <span>Paste</span>
+                <span className="font-mono text-[11px]">Paste</span>
               </button>
             )}
 
-            {/* Ways to send help button */}
             <button
               type="button"
               id="btn-quick-send-help"
               onClick={onOpenHelp}
-              title="Learn all ways to send anything to your vault"
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition-colors cursor-pointer"
+              title="Quick send instructions"
+              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
             >
-              <HelpCircle className="w-4 h-4" />
+              <HelpCircle className="w-3.5 h-3.5" />
             </button>
 
-            {/* Send / Save Button */}
             <button
               type="submit"
               id="btn-quick-send-submit"
               disabled={!inputVal.trim() || isSaving}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-[0.98] ${
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                 justSaved
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white'
+                  ? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
+                  : 'bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900'
               }`}
             >
               {isSaving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : justSaved ? (
                 <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Saved!</span>
+                  <Check className="w-3 h-3" />
+                  <span>Saved</span>
                 </>
               ) : (
                 <>
-                  <Send className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Send & Save</span>
+                  <Send className="w-3 h-3" />
+                  <span className="hidden sm:inline">Capture</span>
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* Live Preview Sub-row when input is populated */}
         {livePreview && (
-          <div className="mt-2 pt-2 border-t border-slate-800/70 flex items-center justify-between text-[11px] text-slate-400 px-1">
+          <div className="mt-1.5 pt-1.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] font-mono text-zinc-500">
             <div className="flex items-center gap-2 truncate pr-2">
-              <span className="text-slate-400">Saving as:</span>
-              <span className="font-semibold text-white truncate max-w-[220px] sm:max-w-xs">
+              <span>Target:</span>
+              <span className="text-zinc-800 dark:text-zinc-200 truncate max-w-xs font-sans font-medium">
                 {livePreview.formData.title}
               </span>
-              {livePreview.formData.tags.length > 0 && (
-                <div className="hidden md:flex items-center gap-1">
-                  {livePreview.formData.tags.map((t) => (
-                    <span key={t} className="text-indigo-400 bg-indigo-500/10 px-1.5 py-0.2 rounded">
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="hidden sm:inline text-slate-400">Press Enter to save</span>
-            </div>
+            <span className="hidden sm:inline text-zinc-400">Press Enter</span>
           </div>
         )}
       </form>

@@ -1,5 +1,6 @@
+// File: src/components/PWAInstallButton.tsx
 import React, { useState } from 'react';
-import { Download, Smartphone, Check } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { InstallModal } from './InstallModal';
 
@@ -12,10 +13,9 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   variant = 'sidebar',
   className = '',
 }) => {
-  const { isInstallable, isInstalled, isStandalone, isIOS, install } = usePWAInstall();
+  const { isInstallable, isStandalone, install } = usePWAInstall();
   const [showModal, setShowModal] = useState(false);
 
-  // If already running standalone on the device, hide or display installed badge
   if (isStandalone) {
     return null;
   }
@@ -37,11 +37,11 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         <button
           id="header-pwa-install-btn"
           onClick={handleClick}
-          title="Add to Home Screen / Install Web App"
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 hover:text-indigo-100 text-xs font-medium transition-all shadow-sm cursor-pointer ${className}`}
+          title="Install as PWA"
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-xs transition-colors cursor-pointer ${className}`}
         >
-          <Download className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="hidden sm:inline">Install App</span>
+          <Download className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Install</span>
         </button>
         <InstallModal isOpen={showModal} onClose={() => setShowModal(false)} />
       </>
@@ -51,19 +51,20 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   if (variant === 'banner') {
     return (
       <>
-        <div className={`p-3 rounded-2xl bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-500/30 flex items-center justify-between gap-3 ${className}`}>
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm shadow-indigo-600/30">
-              <Download className="w-4 h-4 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">Add to Home Screen</p>
-              <p className="text-[11px] text-slate-400 truncate">Access directly from your mobile screen</p>
-            </div>
+        <div
+          className={`p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3 ${className}`}
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+              Install App
+            </p>
+            <p className="font-mono text-[10px] text-zinc-500 truncate">
+              Offline-ready PWA bundle
+            </p>
           </div>
           <button
             onClick={handleClick}
-            className="shrink-0 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95"
+            className="shrink-0 px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-mono transition-colors cursor-pointer"
           >
             Install
           </button>
@@ -80,15 +81,13 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         id="sidebar-pwa-install-btn"
         onClick={handleClick}
         title="Add to Home Screen"
-        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-200 border border-indigo-500/30 transition-all cursor-pointer group shadow-sm ${className}`}
+        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-mono bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer ${className}`}
       >
         <div className="flex items-center gap-2">
-          <Download className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
-          <span>Add to Home Screen</span>
+          <Download className="w-3.5 h-3.5 text-zinc-500" />
+          <span>Install PWA</span>
         </div>
-        <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-mono">
-          PWA
-        </span>
+        <span className="text-[10px] uppercase text-zinc-400">PWA</span>
       </button>
       <InstallModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </>

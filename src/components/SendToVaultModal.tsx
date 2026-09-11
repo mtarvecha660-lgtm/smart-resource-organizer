@@ -1,17 +1,14 @@
+// File: src/components/SendToVaultModal.tsx
 import React, { useState } from 'react';
-import { 
-  X, 
-  Send, 
-  Sparkles, 
-  Clipboard, 
-  DownloadCloud, 
-  Bookmark, 
-  Link as LinkIcon, 
-  Check, 
-  Copy, 
-  ExternalLink,
+import {
+  X,
+  Send,
+  Clipboard,
+  DownloadCloud,
+  Bookmark,
+  Check,
+  Copy,
   Share2,
-  Smartphone
 } from 'lucide-react';
 
 interface SendToVaultModalProps {
@@ -47,160 +44,133 @@ export const SendToVaultModal: React.FC<SendToVaultModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      <div 
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 overflow-y-auto">
+      <div
         id="send-to-vault-modal"
-        className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8"
+        className="w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl overflow-hidden my-8 text-zinc-900 dark:text-zinc-100"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <Send className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-white tracking-tight">
-                Send Anything to Your Vault
-              </h2>
-              <p className="text-xs text-slate-400">
-                Multiple ways to instantly capture resources, notes, and links
-              </p>
-            </div>
+        <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wider font-mono">
+              Capture Protocols
+            </h2>
+            <p className="font-mono text-[11px] text-zinc-500 mt-0.5">
+              Available intake interfaces for storing resources
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 text-xs text-slate-300">
-          {/* Method 0: Mobile Share Target (NEW) */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/80 to-purple-950/60 border border-indigo-500/40 space-y-2 shadow-lg">
+        <div className="p-4 space-y-3 font-mono text-xs">
+          {/* Method 0: Mobile Share Target */}
+          <div className="p-3 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-indigo-600 text-white shrink-0">
-                <Share2 className="w-4 h-4" />
-              </span>
-              <span className="font-bold text-white text-sm">
-                📱 Native Mobile Share Sheet (One-Tap Share)
-              </span>
-              <span className="ml-auto text-[10px] bg-indigo-500/30 text-indigo-300 px-2 py-0.5 rounded-full font-semibold border border-indigo-400/30">
-                PWA Feature
+              <Share2 className="w-3.5 h-3.5 text-zinc-500" />
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 uppercase text-[11px]">
+                Web Share Target (PWA)
               </span>
             </div>
-            <p className="text-slate-300 leading-relaxed pl-8">
-              When browsing any website, YouTube video, document, or tweet on your phone, tap <strong className="text-white">Share</strong> in your browser or app, then choose <strong className="text-indigo-300">"Smart Resource Organizer"</strong>.
-            </p>
-            <p className="text-indigo-300/90 leading-relaxed pl-8 text-[11px] font-medium">
-              ✨ An edit window immediately pops up pre-filled with the identified link, letting you enter your custom title, personal notes/description, tags, or switch categories before saving to your vault!
+            <p className="font-sans text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
+              When installed on mobile, tap "Share" in any browser or app, then choose "Smart Resource Organizer". The capture dialog will open pre-filled with the resource parameters.
             </p>
           </div>
 
-          {/* Method 1: The Quick Send Bar */}
-          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-indigo-600/15 text-indigo-400 shrink-0 mt-0.5">
-              <Send className="w-4 h-4" />
+          {/* Method 1: Quick Send */}
+          <div className="p-3 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1">
+            <div className="flex items-center gap-2">
+              <Send className="w-3.5 h-3.5 text-zinc-500" />
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 uppercase text-[11px]">
+                Quick Send Input Bar
+              </span>
             </div>
-            <div className="space-y-1">
-              <h3 className="font-semibold text-white text-sm">1. Quick Send Bar</h3>
-              <p className="text-slate-400 leading-relaxed">
-                Paste any URL, GitHub repository, doc link, or type a note into the bar at the top and hit <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-slate-300">Enter</kbd>. It automatically categorizes and saves it immediately into Firestore.
-              </p>
-            </div>
+            <p className="font-sans text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
+              Enter any URL, repository link, document address, or text note in the top bar and press Enter to save to the collection.
+            </p>
           </div>
 
-          {/* Method 2: Global Paste Anywhere */}
-          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/15 text-emerald-400 shrink-0 mt-0.5">
-              <Clipboard className="w-4 h-4" />
+          {/* Method 2: Global Clipboard Paste */}
+          <div className="p-3 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1">
+            <div className="flex items-center gap-2">
+              <Clipboard className="w-3.5 h-3.5 text-zinc-500" />
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 uppercase text-[11px]">
+                Global Clipboard Paste
+              </span>
             </div>
-            <div className="space-y-1">
-              <h3 className="font-semibold text-white text-sm">2. Paste Anywhere (Ctrl+V / Cmd+V)</h3>
-              <p className="text-slate-400 leading-relaxed">
-                Copy any URL or text to your clipboard, click anywhere on this dashboard, and press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-slate-300">Ctrl+V</kbd>. The app detects the link and saves it straight to your collection.
-              </p>
-            </div>
+            <p className="font-sans text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
+              Press Ctrl+V or Cmd+V anywhere on the dashboard without an active text field to capture your clipboard contents.
+            </p>
           </div>
 
-          {/* Method 3: Drag and Drop Anywhere */}
-          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/15 text-amber-400 shrink-0 mt-0.5">
-              <DownloadCloud className="w-4 h-4" />
+          {/* Method 3: Drag & Drop */}
+          <div className="p-3 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1">
+            <div className="flex items-center gap-2">
+              <DownloadCloud className="w-3.5 h-3.5 text-zinc-500" />
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 uppercase text-[11px]">
+                Drag & Drop
+              </span>
             </div>
-            <div className="space-y-1">
-              <h3 className="font-semibold text-white text-sm">3. Drag & Drop</h3>
-              <p className="text-slate-400 leading-relaxed">
-                Drag any link from your browser address bar or another window directly onto this dashboard window to trigger the instant save dropzone.
-              </p>
-            </div>
+            <p className="font-sans text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
+              Drag links from another browser tab or your desktop directly over the dashboard window to trigger instant ingestion.
+            </p>
           </div>
 
           {/* Method 4: Browser Bookmarklet */}
-          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2.5">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-violet-500/15 text-violet-400 shrink-0 mt-0.5">
-                <Bookmark className="w-4 h-4" />
-              </div>
-              <div className="space-y-1 flex-1">
-                <h3 className="font-semibold text-white text-sm">4. Browser 1-Click Bookmarklet</h3>
-                <p className="text-slate-400 leading-relaxed">
-                  Drag the button below to your browser's Bookmarks Bar. When you're on ANY website, click it to instantly send that page into your Smart Resource Organizer!
-                </p>
-              </div>
+          <div className="p-3 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-2">
+            <div className="flex items-center gap-2">
+              <Bookmark className="w-3.5 h-3.5 text-zinc-500" />
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 uppercase text-[11px]">
+                Browser Bookmarklet
+              </span>
             </div>
-
-            <div className="pt-2 flex flex-wrap items-center gap-2">
-              <a
-                href={bookmarkletCode}
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert('Drag this button to your bookmarks bar, or click "Copy Code" below!');
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white shadow-sm cursor-grab active:cursor-grabbing transition-colors"
-                title="Drag to your browser bookmarks bar"
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-                <span>Drag me to Bookmarks: 🔖 Save to SRO</span>
-              </a>
-
+            <p className="font-sans text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
+              Copy the JavaScript snippet below and save it as a browser bookmark URL:
+            </p>
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={copyBookmarklet}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors cursor-pointer"
               >
-                {copiedBookmarklet ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedBookmarklet ? 'Copied Code!' : 'Copy Code'}</span>
+                {copiedBookmarklet ? <Check className="w-3 h-3 text-zinc-900 dark:text-zinc-100" /> : <Copy className="w-3 h-3 text-zinc-500" />}
+                <span>{copiedBookmarklet ? 'Copied' : 'Copy Bookmarklet Code'}</span>
               </button>
             </div>
           </div>
 
-          {/* Method 5: URL Parameter Integration */}
-          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
+          {/* Method 5: URL Parameter Ingestion */}
+          <div className="p-3 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-white">5. Direct Link / Webhook Parameter</span>
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 uppercase text-[11px]">
+                Query Parameter Interface
+              </span>
               <button
                 onClick={copyWebhookUrl}
-                className="inline-flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-300 font-medium cursor-pointer"
+                className="inline-flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
               >
-                {copiedWebhook ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedWebhook ? 'Copied' : 'Copy Sample'}</span>
+                {copiedWebhook ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedWebhook ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
-            <p className="text-slate-400 font-mono text-[11px] bg-slate-900 p-2 rounded-lg border border-slate-800 break-all select-all">
+            <p className="font-mono text-[10px] bg-white dark:bg-zinc-900 p-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 break-all select-all">
               {sampleUrlParam}
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-800 bg-slate-950/60 flex justify-end">
+        <div className="px-4 py-2.5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+            className="px-3 py-1 rounded text-xs font-mono bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 transition-colors cursor-pointer"
           >
-            Got it, close
+            Close
           </button>
         </div>
       </div>
